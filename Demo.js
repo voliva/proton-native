@@ -6,7 +6,7 @@ class Example extends Component {
   render() {
     return <VerticalBox>
       <TextInput stretchy={true} />
-      <TextInput />
+      <TextInput onChanged={(widget) => console.log('onChanged', widget.text)} />
     </VerticalBox>
   }
 }

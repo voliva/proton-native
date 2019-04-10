@@ -67,7 +67,15 @@ const NewRenderer = Reconciler({
     console.log('finalizeInitialChildren', instance, type, rootContainerInstance, hostContext);
     Object.entries(props).forEach(([key, value]) => {
       if(typeof instance.widget[key] !== 'undefined') {
-        instance.widget[key] = value;
+        if (
+          typeof value === 'function' &&
+          typeof instance.widget[key] === 'function' &&
+          key.indexOf('on') === 0
+        ) {
+          instance.widget[key](() => value(instance.widget));
+        } else {
+          instance.widget[key] = value;
+        }
       } else {
         console.warn(`Element ${type} doesn't have prop ${key}`);
       }
