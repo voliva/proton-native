@@ -20,15 +20,24 @@ function render_orig(element) {
 }
 
 
-import * as LibUI from 'libui-node';
+import * as Components from '../components';
+
+const appendChild = (container, child) => {
+  if (container.appendChild) {
+    container.appendChild(container, child);
+  }else if(container.setChild) {
+    container.setChild(child.widget); // TODO
+  } else {
+    throw new Error(`Can't append child to ${container.constructor.name}`);
+  }
+}
+
+const getLayoutProps = props => ({
+  stretchy: props.stretchy
+});
 
 const Reconciler = require('react-reconciler');
 const NewRenderer = Reconciler({
-  appendInitialChild(parentInstance, child) {
-    console.log(parentInstance, child);
-    throw 'appendInitialChild';
-  },
-
   createInstance(
     type,
     props,
@@ -36,11 +45,11 @@ const NewRenderer = Reconciler({
     hostContext,
     internalInstanceHandle,
   ) {
-    console.log('createInstance', type, props, rootContainerInstance, hostContext);
-    if(typeof LibUI[type] !== 'function') {
-      throw new Error(`LibUI widget ${type} doesn't exist`);
+    console.log('createInstance', type, rootContainerInstance, hostContext);
+    if(typeof Components[type] === 'undefined') {
+      throw new Error(`Component ${type} doesn't exist`);
     }
-    return new LibUI[type]();
+    return Components[type](getLayoutProps(props));
   },
 
   createTextInstance(text, rootContainerInstance, internalInstanceHandle) {
@@ -55,10 +64,10 @@ const NewRenderer = Reconciler({
     rootContainerInstance,
     hostContext
   ) {
-    console.log('finalizeInitialChildren', instance, type, props, rootContainerInstance, hostContext);
+    console.log('finalizeInitialChildren', instance, type, rootContainerInstance, hostContext);
     Object.entries(props).forEach(([key, value]) => {
-      if(typeof instance[key] !== 'undefined') {
-        instance[key] = value;
+      if(typeof instance.widget[key] !== 'undefined') {
+        instance.widget[key] = value;
       } else {
         console.warn(`Element ${type} doesn't have prop ${key}`);
       }
@@ -110,7 +119,6 @@ const NewRenderer = Reconciler({
   shouldSetTextContent(type, props) {
     console.log('shouldSetTextContext', type);
     const textTypes = {
-      'ENTRY': true
     };
     return textTypes[type] || false;
   },
@@ -120,21 +128,19 @@ const NewRenderer = Reconciler({
   useSyncScheduling: true,
 
   // MUTATION
+  appendInitialChild(container, child) {
+    console.log('appendInitialChild', container, child);
+    appendChild(container, child);
+  },
 
-  appendChild(parentInstance, child) {
-    console.log(parentInstance, child);
-    throw 'appendChild';
+  appendChild(container, child) {
+    console.log(container, child);
+    appendChild(container, child);
   },
 
   appendChildToContainer(container, child) {
     console.log('appendChildToContainer', container, child);
-    if (container.appendChild) {
-      container.appendChild(child);
-    }else if(container.setChild) {
-      container.setChild(child);
-    } else {
-      throw new Error(`Can't append child to ${container.constructor.name}`);
-    }
+    appendChild(container, child);
   },
 
   removeChild(parentInstance, child) {

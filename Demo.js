@@ -1,10 +1,13 @@
 import React, { Component } from 'react';
 
-import { render, Window, App, TextInput, Dialog } from './src/';
+import { render, Window, App, TextInput, Dialog, VerticalBox } from './src/';
 
 class Example extends Component {
   render() {
-    return <TextInput />
+    return <VerticalBox>
+      <TextInput stretchy={true} />
+      <TextInput />
+    </VerticalBox>
   }
 }
 
