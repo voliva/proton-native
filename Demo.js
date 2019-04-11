@@ -1,35 +1,28 @@
-import React, { Component } from 'react';
+import React, { useState, useCallback } from 'react';
 
 import { render, Window, App, TextInput, Dialog, VerticalBox } from './src/';
 
-class Example extends Component {
-  render() {
-    return <VerticalBox>
-      <TextInput stretchy={true} />
-      <TextInput onChanged={(widget) => console.log('onChanged', widget.text)} />
-    </VerticalBox>
-  }
+const Example = () => {
+	const [stretchy, setStretchy] = useState(true);
+
+	const toggleStretchy = useCallback(() => setStretchy(s => !s), [setStretchy]);
+
+	return <Window>
+		<VerticalBox>
+			<TextInput stretchy={stretchy} />
+			<TextInput onChanged={toggleStretchy} />
+		</VerticalBox>
+	</Window>
 }
 
 import {
-	UiWindow,
 	UiMenu,
-	startLoop,
-	stopLoop,
-	onShouldQuit
 } from 'libui-node';
 
 const menu = new UiMenu('File');
 menu.appendQuitItem();
 
-const window = UiWindow('Initialization Example', 400, 300, true);
+const app = new App();
 
-onShouldQuit(() => {
-	window.close();
-	stopLoop();
-});
+render(<Example />, app);
 
-window.show();
-startLoop();
-
-render(<Example />, window);

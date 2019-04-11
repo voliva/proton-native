@@ -1,4 +1,4 @@
-import render from './render';
+import render, { App } from './render';
 import {
   Box,
   TextInput,
@@ -13,8 +13,7 @@ import { Dialog } from './components';
 
 // Aliases for createElement method
 const Text = 'TEXT';
-const App = 'APP';
-const Window = 'WINDOW';
+const Window = 'Window';
 const Button = 'BUTTON';
 const VerticalBox = 'VerticalBox';
 const HorizontalBox = 'HORIZONTALBOX';

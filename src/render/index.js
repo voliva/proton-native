@@ -24,9 +24,8 @@ import * as Components from '../components';
 
 const appendChild = (container, child) => {
   if (container.appendChild) {
-    container.appendChild(container, child);
-  }else if(container.setChild) {
-    container.setChild(child.widget); // TODO
+    container.appendChild(child);
+    child.parent = container;
   } else {
     throw new Error(`Can't append child to ${container.constructor.name}`);
   }
@@ -93,9 +92,25 @@ const NewRenderer = Reconciler({
     // TODO
   },
 
-  prepareUpdate(wordElement, type, oldProps, newProps) {
-    console.log(wordElement, type, oldProps, newProps);
-    throw 'prepareUpdate';
+  prepareUpdate(instance, type, oldProps, newProps, rootContainerInstance, hostContext) {
+    console.log('prepareUpdate', instance, type, rootContainerInstance, hostContext);
+    const propKeys = new Set(
+      Object.keys(newProps).concat(
+        Object.keys(oldProps)
+      )
+    ).values();
+
+    const diff = {};
+    for (let key of propKeys) {
+      if (
+        key !== 'children' && // text children are already handled
+        oldProps[key] !== newProps[key]
+      ) {
+        diff[key] = newProps[key];
+      }
+    }
+    console.log('diffed', diff);
+    return diff; // TODO
   },
 
   resetAfterCommit(hostContext) {
@@ -166,9 +181,17 @@ const NewRenderer = Reconciler({
     throw 'insertBefore';
   },
 
-  commitUpdate(instance, updatePayload, type, oldProps, newProps) {
-    console.log(instance, updatePayload, type, oldProps, newProps);
-    throw 'commitUpdate';
+  commitUpdate(instance, updatePayload, type, oldProps, newProps, internalInstanceHandle) {
+    console.log('commitUpdate', instance, updatePayload, type);
+    const layoutProps = ['stretchy'];
+    Object.entries(updatePayload).forEach(([key, value]) => {
+      if(layoutProps.includes(key)) {
+        const { parent } = instance;
+        parent.updateLayout(parent, instance, key, value);
+      } else {
+        throw 'commitUpdate';
+      }
+    });
   },
 
   commitMount(instance, updatePayload, type, oldProps, newProps) {
@@ -184,6 +207,73 @@ const NewRenderer = Reconciler({
   supportsMutation: true,
   supportsPersistence: false,
 });
+
+/*
+interface Component {
+  widget?: LibUIWidget;
+  layoutProps?: any;
+  parent?: Component;
+  appendChild: (child) => void;
+  insertChild: (child, i) => void;
+  removeChild: (child, i) => void;
+  updateLayout?: (child) => void;
+}
+*/
+
+import {
+  startLoop,
+  onShouldQuit,
+  stopLoop
+} from 'libui-node';
+
+export const App = () => {
+  const windows = [];
+
+  startLoop();
+  onShouldQuit(() => {
+    windows.splice(0).forEach(w => w.close());
+    stopLoop();
+  });
+
+  const isWindow = child => child.widget && child.widget.show && child.widget.close;
+
+  const appendChild = child => {
+    if(!isWindow(child)) {
+      throw new Error('Child is not a window');
+    }
+    windows.push(child.widget);
+    child.widget.show();
+  }
+
+  const insertChild = (child, i) => {
+    if(!isWindow(child)) {
+      throw new Error('Child is not a window');
+    }
+    if(windows.includes(child.widget)) {
+      throw new Error(`Can't add the same window twice`);
+    }
+    windows.splice(0, i, child.widget);
+    child.widget.show();
+  }
+
+  const removeChild = child => {
+    if(!isWindow(child)) {
+      throw new Error('Child is not a window');
+    }
+    if(!windows.includes(child.widget)) {
+      throw new Error(`Can't remove a child that's not added`);
+    }
+    const i = windows.indexOf(child.widget);
+    windows.splice(i, 1)[0].close();
+  }
+
+  return {
+    type: 'App',
+    appendChild,
+    insertChild,
+    removeChild
+  }
+}
 
 function render(element, window) {
   const container = NewRenderer.createContainer(window);
