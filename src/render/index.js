@@ -178,8 +178,8 @@ const NewRenderer = Reconciler({
   },
 
   removeChild(container, child) {
-    console.log(container, child);
-    throw 'removeChild';
+    console.log('removeChild', container.widget, child.widget);
+    container.removeChild(child);
   },
 
   removeChildFromContainer(container, child) {
@@ -188,8 +188,13 @@ const NewRenderer = Reconciler({
   },
 
   insertBefore(container, child, beforeChild) {
-    console.log(container, child, beforeChild);
-    throw 'insertBefore';
+    console.log(
+      'insertBefore',
+      container.widget,
+      child.widget,
+      beforeChild.widget
+    );
+    container.insertChild(child, beforeChild);
   },
 
   commitUpdate(
@@ -288,13 +293,17 @@ export const App = () => {
     child.widget.show();
   };
 
-  const insertChild = (child, i) => {
+  const insertChild = (child, beforeChild) => {
     if (!isWindow(child)) {
       throw new Error('Child is not a window');
     }
     if (windows.includes(child.widget)) {
       throw new Error(`Can't add the same window twice`);
     }
+    if (!windows.includes(beforeChild.widget)) {
+      throw new Error(`Relative element does not exist`);
+    }
+    const i = windows.indexOf(beforeChild.widget);
     windows.splice(0, i, child.widget);
     child.widget.show();
   };

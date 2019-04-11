@@ -5,8 +5,8 @@ export default (props, layoutProps) => {
 
   const children = [];
 
-  const syncFrom = index => {
-    for (let i = index; i < children.length; i++) {
+  const syncFrom = (index, prevLength) => {
+    for (let i = index; i < prevLength; i++) {
       widget.deleteAt(index);
     }
 
@@ -23,19 +23,23 @@ export default (props, layoutProps) => {
     children.push(child);
     widget.append(child.widget, child.layoutProps.layoutStretchy);
   };
-  const insertChild = (child, i) => {
+  const insertChild = (child, beforeChild) => {
     if (!child.widget) {
       throw new Error(`Child doesnt have any widget`);
     }
+    if (!children.includes(beforeChild)) {
+      throw new Error(`Relative element does not exist`);
+    }
 
+    const i = children.indexOf(beforeChild);
     children.splice(i, 0, child);
-    syncFrom(i);
+    syncFrom(i, children.length - 1);
   };
   const removeChild = child => {
     if (!children.includes(child)) {
       throw new Error(`Can't remove a child that's not added`);
     }
-    const i = children.indexOf(child.widget);
+    const i = children.indexOf(child);
     children.splice(i, 1);
     widget.deleteAt(i);
   };
@@ -45,7 +49,7 @@ export default (props, layoutProps) => {
     }
 
     const i = children.indexOf(child);
-    syncFrom(i);
+    syncFrom(i, children.length);
   };
 
   return {
