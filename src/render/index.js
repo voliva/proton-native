@@ -19,7 +19,6 @@ function render_orig(element) {
   //ROOT_NODE.render();
 }
 
-
 import * as Components from '../components';
 
 const appendChild = (container, child) => {
@@ -29,10 +28,10 @@ const appendChild = (container, child) => {
   } else {
     throw new Error(`Can't append child to ${container.constructor.name}`);
   }
-}
+};
 
 const getLayoutProps = props => ({
-  stretchy: props.stretchy
+  layoutStretchy: props.layoutStretchy,
 });
 
 const Reconciler = require('react-reconciler');
@@ -42,17 +41,22 @@ const NewRenderer = Reconciler({
     props,
     rootContainerInstance,
     hostContext,
-    internalInstanceHandle,
+    internalInstanceHandle
   ) {
-    console.log('createInstance', type, rootContainerInstance, hostContext);
-    if(typeof Components[type] === 'undefined') {
+    console.log(
+      'createInstance',
+      type,
+      rootContainerInstance.type,
+      hostContext
+    );
+    if (typeof Components[type] === 'undefined') {
       throw new Error(`Component ${type} doesn't exist`);
     }
-    return Components[type](getLayoutProps(props));
+    return Components[type](props, getLayoutProps(props));
   },
 
   createTextInstance(text, rootContainerInstance, internalInstanceHandle) {
-    console.log(text, rootContainerInstance, internalInstanceHandle);
+    console.log(text, rootContainerInstance.type, internalInstanceHandle);
     throw 'createTextInstance';
   },
 
@@ -63,9 +67,15 @@ const NewRenderer = Reconciler({
     rootContainerInstance,
     hostContext
   ) {
-    console.log('finalizeInitialChildren', instance, type, rootContainerInstance, hostContext);
+    console.log(
+      'finalizeInitialChildren',
+      instance.widget,
+      type,
+      rootContainerInstance.type,
+      hostContext
+    );
     Object.entries(props).forEach(([key, value]) => {
-      if(typeof instance.widget[key] !== 'undefined') {
+      if (typeof instance.widget[key] !== 'undefined') {
         if (
           typeof value === 'function' &&
           typeof instance.widget[key] === 'function' &&
@@ -87,17 +97,28 @@ const NewRenderer = Reconciler({
     throw 'getPublicInstance';
   },
 
-  prepareForCommit(hostContext) {
-    console.log('prepareForCommit', hostContext);
+  prepareForCommit(rootContainerInstance) {
+    console.log('prepareForCommit', rootContainerInstance.type);
     // TODO
   },
 
-  prepareUpdate(instance, type, oldProps, newProps, rootContainerInstance, hostContext) {
-    console.log('prepareUpdate', instance, type, rootContainerInstance, hostContext);
+  prepareUpdate(
+    instance,
+    type,
+    oldProps,
+    newProps,
+    rootContainerInstance,
+    hostContext
+  ) {
+    console.log(
+      'prepareUpdate',
+      instance.widget,
+      type,
+      rootContainerInstance.type,
+      hostContext
+    );
     const propKeys = new Set(
-      Object.keys(newProps).concat(
-        Object.keys(oldProps)
-      )
+      Object.keys(newProps).concat(Object.keys(oldProps))
     ).values();
 
     const diff = {};
@@ -113,8 +134,8 @@ const NewRenderer = Reconciler({
     return diff; // TODO
   },
 
-  resetAfterCommit(hostContext) {
-    console.log('resetAfterCommit', hostContext);
+  resetAfterCommit(rootContainerInstance) {
+    console.log('resetAfterCommit', rootContainerInstance.type);
     // TODO
   },
 
@@ -125,24 +146,24 @@ const NewRenderer = Reconciler({
 
   getRootHostContext(rootContainerInstance) {
     // TODO
-    console.log('getRootHostContext', rootContainerInstance);
+    console.log('getRootHostContext', rootContainerInstance.type);
     return {};
   },
 
-  getChildHostContext(
-    parentHostContext,
-    type,
-    rootContainerInstance
-  ) {
-    console.log('getChildHostContext', parentHostContext, type, rootContainerInstance);
+  getChildHostContext(parentHostContext, type, rootContainerInstance) {
+    console.log(
+      'getChildHostContext',
+      parentHostContext,
+      type,
+      rootContainerInstance.type
+    );
     return parentHostContext;
     // TODO;
   },
 
   shouldSetTextContent(type, props) {
     console.log('shouldSetTextContext', type);
-    const textTypes = {
-    };
+    const textTypes = {};
     return textTypes[type] || false;
   },
 
@@ -152,42 +173,49 @@ const NewRenderer = Reconciler({
 
   // MUTATION
   appendInitialChild(container, child) {
-    console.log('appendInitialChild', container, child);
+    console.log('appendInitialChild', container.widget, child.widget);
     appendChild(container, child);
   },
 
   appendChild(container, child) {
-    console.log(container, child);
+    console.log('appendChild', container.widget, child.widget);
     appendChild(container, child);
   },
 
   appendChildToContainer(container, child) {
-    console.log('appendChildToContainer', container, child);
+    console.log('appendChildToContainer', container.widget, child.widget);
     appendChild(container, child);
   },
 
-  removeChild(parentInstance, child) {
-    console.log(parentInstance, child);
+  removeChild(container, child) {
+    console.log(container, child);
     throw 'removeChild';
   },
 
-  removeChildFromContainer(parentInstance, child) {
-    console.log(parentInstance, child);
+  removeChildFromContainer(container, child) {
+    console.log(container, child);
     throw 'removeChildFromContainer';
   },
 
-  insertBefore(parentInstance, child, beforeChild) {
-    console.log(parentInstance, child, beforeChild);
+  insertBefore(container, child, beforeChild) {
+    console.log(container, child, beforeChild);
     throw 'insertBefore';
   },
 
-  commitUpdate(instance, updatePayload, type, oldProps, newProps, internalInstanceHandle) {
-    console.log('commitUpdate', instance, updatePayload, type);
-    const layoutProps = ['stretchy'];
+  commitUpdate(
+    instance,
+    updatePayload,
+    type,
+    oldProps,
+    newProps,
+    internalInstanceHandle
+  ) {
+    console.log('commitUpdate', instance.widget, updatePayload, type);
+    const layoutProps = ['layoutStretchy'];
     Object.entries(updatePayload).forEach(([key, value]) => {
-      if(layoutProps.includes(key)) {
-        const { parent } = instance;
-        parent.updateLayout(parent, instance, key, value);
+      if (layoutProps.includes(key)) {
+        instance.layoutProps[key] = value;
+        instance.parent.updateLayout(instance);
       } else {
         throw 'commitUpdate';
       }
@@ -220,11 +248,7 @@ interface Component {
 }
 */
 
-import {
-  startLoop,
-  onShouldQuit,
-  stopLoop
-} from 'libui-node';
+import { startLoop, onShouldQuit, stopLoop } from 'libui-node';
 
 export const App = () => {
   const windows = [];
@@ -235,45 +259,46 @@ export const App = () => {
     stopLoop();
   });
 
-  const isWindow = child => child.widget && child.widget.show && child.widget.close;
+  const isWindow = child =>
+    child.widget && child.widget.show && child.widget.close;
 
   const appendChild = child => {
-    if(!isWindow(child)) {
+    if (!isWindow(child)) {
       throw new Error('Child is not a window');
     }
     windows.push(child.widget);
     child.widget.show();
-  }
+  };
 
   const insertChild = (child, i) => {
-    if(!isWindow(child)) {
+    if (!isWindow(child)) {
       throw new Error('Child is not a window');
     }
-    if(windows.includes(child.widget)) {
+    if (windows.includes(child.widget)) {
       throw new Error(`Can't add the same window twice`);
     }
     windows.splice(0, i, child.widget);
     child.widget.show();
-  }
+  };
 
   const removeChild = child => {
-    if(!isWindow(child)) {
+    if (!isWindow(child)) {
       throw new Error('Child is not a window');
     }
-    if(!windows.includes(child.widget)) {
+    if (!windows.includes(child.widget)) {
       throw new Error(`Can't remove a child that's not added`);
     }
     const i = windows.indexOf(child.widget);
     windows.splice(i, 1)[0].close();
-  }
+  };
 
   return {
     type: 'App',
     appendChild,
     insertChild,
-    removeChild
-  }
-}
+    removeChild,
+  };
+};
 
 function render(element, window) {
   const container = NewRenderer.createContainer(window);

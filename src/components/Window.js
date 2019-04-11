@@ -1,32 +1,35 @@
-import {
-	UiWindow,
-} from 'libui-node';
+import { UiWindow } from 'libui-node';
 
 export default (initialProps, layoutProps) => {
   const {
-    initialTitle,
+    title,
     initialHeight = 400,
     initialWidth = 300,
-    initialHasMenuBar = true
+    initialHasMenuBar = true,
   } = initialProps;
 
   let attachedChild = null;
 
-  const widget = UiWindow(initialTitle, initialHeight, initialWidth, initialHasMenuBar);
+  const widget = UiWindow(
+    title,
+    initialHeight,
+    initialWidth,
+    initialHasMenuBar
+  );
   const appendChild = child => {
-    if(!child.widget) {
+    if (!child.widget) {
       throw new Error(`Window child doesnt have any widget`);
     }
-    if(attachedChild) {
+    if (attachedChild) {
       throw new Error(`Window can only have 1 child`);
     }
 
     attachedChild = child;
     widget.setChild(child.widget);
-  }
+  };
   const removeChild = () => {
     throw new Error(`Can't remove children from window`);
-  }
+  };
 
   return {
     type: 'Window',
@@ -34,6 +37,6 @@ export default (initialProps, layoutProps) => {
     layoutProps,
     appendChild,
     insertChild: appendChild,
-    removeChild
+    removeChild,
   };
-}
+};
