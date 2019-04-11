@@ -4,7 +4,16 @@ export default (props, layoutProps) => {
   const widget = new libui.UiVerticalBox();
 
   const children = [];
-  let dirtyIndex = Number.POSITIVE_INFINITY;
+
+  const syncFrom = index => {
+    for (let i = index; i < children.length; i++) {
+      widget.deleteAt(index);
+    }
+
+    for (let i = index; i < children.length; i++) {
+      widget.append(children[i].widget, children[i].layoutProps.layoutStretchy);
+    }
+  };
 
   const appendChild = child => {
     if (!child.widget) {
@@ -20,8 +29,7 @@ export default (props, layoutProps) => {
     }
 
     children.splice(i, 0, child);
-    dirtyIndex = Math.min(dirtyIndex, i);
-    finishUpdate(); // TODO is it necesary?
+    syncFrom(i);
   };
   const removeChild = child => {
     if (!children.includes(child)) {
@@ -37,18 +45,7 @@ export default (props, layoutProps) => {
     }
 
     const i = children.indexOf(child);
-    dirtyIndex = Math.min(dirtyIndex, i);
-  };
-  const finishUpdate = () => {
-    for (let i = dirtyIndex; i < children.length; i++) {
-      widget.deleteAt(dirtyIndex);
-    }
-
-    for (let i = dirtyIndex; i < children.length; i++) {
-      widget.append(children[i].widget, children[i].layoutProps.layoutStretchy);
-    }
-
-    dirtyIndex = Number.POSITIVE_INFINITY;
+    syncFrom(i);
   };
 
   return {
@@ -58,6 +55,5 @@ export default (props, layoutProps) => {
     insertChild,
     removeChild,
     updateLayout,
-    finishUpdate,
   };
 };
