@@ -3,15 +3,12 @@ import React, { useState, useCallback } from 'react';
 import { render, Window, App, TextInput, Dialog, VerticalBox } from './src/';
 
 const Example = () => {
-  const [stretchy, setStretchy] = useState(true);
-
-  const toggleStretchy = useCallback(() => setStretchy(s => !s), [setStretchy]);
+  const [value, setValue] = useState('Hello!');
 
   return (
     <Window>
       <VerticalBox>
-        <TextInput layoutStretchy={stretchy} />
-        <TextInput onChanged={toggleStretchy} />
+        <TextInput value={value} onChange={setValue} />
       </VerticalBox>
     </Window>
   );

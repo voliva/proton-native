@@ -74,21 +74,7 @@ const NewRenderer = Reconciler({
       rootContainerInstance.type,
       hostContext
     );
-    Object.entries(props).forEach(([key, value]) => {
-      if (typeof instance.widget[key] !== 'undefined') {
-        if (
-          typeof value === 'function' &&
-          typeof instance.widget[key] === 'function' &&
-          key.indexOf('on') === 0
-        ) {
-          instance.widget[key](() => value(instance.widget));
-        } else {
-          instance.widget[key] = value;
-        }
-      } else {
-        console.warn(`Element ${type} doesn't have prop ${key}`);
-      }
-    });
+
     return false; // TODO
   },
 
@@ -211,15 +197,43 @@ const NewRenderer = Reconciler({
     internalInstanceHandle
   ) {
     console.log('commitUpdate', instance.widget, updatePayload, type);
+
     const layoutProps = ['layoutStretchy'];
-    Object.entries(updatePayload).forEach(([key, value]) => {
-      if (layoutProps.includes(key)) {
-        instance.layoutProps[key] = value;
-        instance.parent.updateLayout(instance);
-      } else {
-        throw 'commitUpdate';
-      }
-    });
+
+    const [layoutChanges, propChanges] = Object.entries(updatePayload).reduce(
+      ([layoutChanges, propChanges], [key, value]) => {
+        if (layoutProps.includes(key)) {
+          return [
+            {
+              ...layoutChanges,
+              [key]: value,
+            },
+            propChanges,
+          ];
+        }
+
+        return [
+          layoutChanges,
+          {
+            ...propChanges,
+            [key]: value,
+          },
+        ];
+      },
+      [{}, {}]
+    );
+
+    if (Object.keys(layoutChanges).length > 0 && instance.parent.updateLayout) {
+      instance.layoutProps = {
+        ...instance.layoutProps,
+        ...layoutChanges,
+      };
+      instance.parent.updateLayout(instance);
+    }
+
+    if (instance.updateProps) {
+      instance.updateProps(propChanges);
+    }
   },
 
   commitMount(instance, updatePayload, type, oldProps, newProps) {
