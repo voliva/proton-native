@@ -1,6 +1,7 @@
 import { UiWindow, Size } from 'libui-node';
+import { UnaryContainer } from './Container';
 
-export default (props, layoutProps) => {
+export default props => {
   const {
     title,
     height = 400,
@@ -8,44 +9,31 @@ export default (props, layoutProps) => {
     initialHasMenuBar = true,
   } = props;
 
-  let attachedChild = null;
-
-  const widget = UiWindow(
+  const element = UiWindow(
     title,
     width,
     height,
     initialHasMenuBar
   );
 
-  widget.onClosing(() => {
+  const containerProps = UnaryContainer(
+    child => element.setChild(child.element)
+  );
+
+  element.onClosing(() => {
     if(props.onClose) {
       props.onClose();
     }
   });
 
-  widget.onContentSizeChanged(() => {
+  element.onContentSizeChanged(() => {
     if(props.onContentSizeChanged) {
       props.onContentSizeChanged(
-        widget.contentSize.w,
-        widget.contentSize.h
+        element.contentSize.w,
+        element.contentSize.h
       );
     }
   });
-
-  const appendChild = child => {
-    if (!child.widget) {
-      throw new Error(`Window child doesnt have any widget`);
-    }
-    if (attachedChild) {
-      throw new Error(`Window can only have 1 child`);
-    }
-
-    attachedChild = child;
-    widget.setChild(child.widget);
-  };
-  const removeChild = () => {
-    throw new Error(`Can't remove children from window`);
-  };
 
   const updateProps = changes => {
     props = {
@@ -54,33 +42,30 @@ export default (props, layoutProps) => {
     };
 
     if(changes.title) {
-      widget.title = props.title;
+      element.title = props.title;
     }
     if(changes.width || changes.height) {
-      widget.setContentSize(new Size(
-        props.width || widget.contentSize.w,
-        props.height || widget.contentSize.h
+      element.setContentSize(new Size(
+        props.width || element.contentSize.w,
+        props.height || element.contentSize.h
       ));
     }
     if(changes.margined) {
-      widget.margined = props.margined;
+      element.margined = props.margined;
     }
     if(changes.fullscreen) {
-      widget.fullscreen = props.fullscreen;
+      element.fullscreen = props.fullscreen;
     }
     if(changes.borderless) {
-      widget.borderless = props.borderless;
+      element.borderless = props.borderless;
     }
   }
 
   updateProps(props);
 
   return {
-    widget,
-    layoutProps,
-    appendChild,
-    insertChild: appendChild,
-    removeChild,
+    ...containerProps,
+    element,
     updateProps
   };
 };

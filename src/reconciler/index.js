@@ -1,109 +1,244 @@
-import emptyObject from 'fbjs/lib/emptyObject';
-import { createElement, getHostContextNode } from '../utils/createElement';
-import { ROOT_NODE } from '../render/';
 
+import * as Components from '../components';
 const Reconciler = require('react-reconciler');
 
-const DesktopRenderer = Reconciler({
-  appendInitialChild(parentInstance, child) {
-    if (parentInstance.appendChild) {
-      parentInstance.appendChild(child);
-    }
-  },
+const appendChild = (container, child) => {
+  if (container.appendChild) {
+    container.appendChild(child);
+    child.parent = container;
+  } else {
+    throw new Error(`Can't append child to ${container.constructor.name}`);
+  }
+};
 
-  createInstance(type, props, internalInstanceHandle) {
-    return createElement(type, props);
+const getLayoutProps = props => ({
+  layoutStretchy: props.layoutStretchy,
+});
+
+const NewRenderer = Reconciler({
+  createInstance(
+    type,
+    props,
+    rootContainerInstance,
+    hostContext,
+    internalInstanceHandle
+  ) {
+    console.log(
+      'createInstance',
+      type,
+      rootContainerInstance.type,
+      hostContext
+    );
+    if (typeof Components[type] === 'undefined') {
+      throw new Error(`Component ${type} doesn't exist`);
+    }
+    const instance = Components[type](props);
+    instance.layoutProps = getLayoutProps(props);
+    return instance;
   },
 
   createTextInstance(text, rootContainerInstance, internalInstanceHandle) {
-    return text;
+    console.log(text, rootContainerInstance.type, internalInstanceHandle);
+    throw 'createTextInstance';
   },
 
-  finalizeInitialChildren(wordElement, type, props) {
-    return false;
+  finalizeInitialChildren(
+    instance,
+    type,
+    props,
+    rootContainerInstance,
+    hostContext
+  ) {
+    console.log(
+      'finalizeInitialChildren',
+      instance.element,
+      type,
+      rootContainerInstance.type,
+      hostContext
+    );
+
+    return false; // TODO
   },
 
-  getPublicInstance(inst) {
-    return inst;
+  getPublicInstance(instance) {
+    console.log('getPublicInstance', instance.element);
+
+    if (!instance.element) {
+      throw new Error(`Component doesn't have any element available`);
+    }
+    return instance.element;
   },
 
-  prepareForCommit(hostContext) {
-    // noop
+  prepareForCommit(rootContainerInstance) {
+    console.log('prepareForCommit', rootContainerInstance.type);
+    // TODO
   },
 
-  prepareUpdate(wordElement, type, oldProps, newProps) {
-    return true;
+  prepareUpdate(
+    instance,
+    type,
+    oldProps,
+    newProps,
+    rootContainerInstance,
+    hostContext
+  ) {
+    console.log(
+      'prepareUpdate',
+      instance.element,
+      type,
+      rootContainerInstance.type,
+      hostContext
+    );
+    const propKeys = new Set(
+      Object.keys(newProps).concat(Object.keys(oldProps))
+    ).values();
+
+    const diff = {};
+    for (let key of propKeys) {
+      if (
+        key !== 'children' && // text children are already handled
+        oldProps[key] !== newProps[key]
+      ) {
+        diff[key] = newProps[key];
+      }
+    }
+    console.log('diffed', diff);
+    return diff; // TODO
   },
 
-  resetAfterCommit(hostContext) {
-    // noop
+  resetAfterCommit(rootContainerInstance) {
+    console.log('resetAfterCommit', rootContainerInstance.type);
+    // TODO
   },
 
   resetTextContent(wordElement) {
-    // noop
+    console.log(wordElement);
+    throw 'resetTextContent';
   },
 
-  getRootHostContext(instance) {
-    const a = getHostContextNode(instance);
-    return a;
+  getRootHostContext(rootContainerInstance) {
+    // TODO
+    console.log('getRootHostContext', rootContainerInstance.type);
+    return {};
   },
 
-  getChildHostContext(instance) {
-    return emptyObject;
+  getChildHostContext(parentHostContext, type, rootContainerInstance) {
+    console.log(
+      'getChildHostContext',
+      parentHostContext,
+      type,
+      rootContainerInstance.type
+    );
+    return parentHostContext;
+    // TODO;
   },
 
   shouldSetTextContent(type, props) {
-    return false;
+    console.log('shouldSetTextContext', type);
+    const textTypes = {};
+    return textTypes[type] || false;
   },
 
-  now: () => {},
+  now: () => new Date().getTime(),
 
   useSyncScheduling: true,
 
   // MUTATION
+  appendInitialChild(container, child) {
+    console.log('appendInitialChild', container.element, child.element);
+    appendChild(container, child);
+  },
 
-  appendChild(parentInstance, child) {
-    if (parentInstance.appendChild) {
-      parentInstance.appendChild(child);
+  appendChild(container, child) {
+    console.log('appendChild', container.element, child.element);
+    appendChild(container, child);
+  },
+
+  appendChildToContainer(container, child) {
+    console.log('appendChildToContainer', container.element, child.element);
+    appendChild(container, child);
+  },
+
+  removeChild(container, child) {
+    console.log('removeChild', container.element, child.element);
+    container.removeChild(child);
+  },
+
+  removeChildFromContainer(container, child) {
+    console.log(container, child);
+    throw 'removeChildFromContainer';
+  },
+
+  insertBefore(container, child, beforeChild) {
+    console.log(
+      'insertBefore',
+      container.element,
+      child.element,
+      beforeChild.element
+    );
+    container.insertChild(child, beforeChild);
+  },
+
+  commitUpdate(
+    instance,
+    updatePayload,
+    type,
+    oldProps,
+    newProps,
+    internalInstanceHandle
+  ) {
+    console.log('commitUpdate', instance.element, updatePayload, type);
+
+    const layoutProps = ['layoutStretchy'];
+
+    const [layoutChanges, propChanges] = Object.entries(updatePayload).reduce(
+      ([layoutChanges, propChanges], [key, value]) => {
+        if (layoutProps.includes(key)) {
+          return [
+            {
+              ...layoutChanges,
+              [key]: value,
+            },
+            propChanges,
+          ];
+        }
+
+        return [
+          layoutChanges,
+          {
+            ...propChanges,
+            [key]: value,
+          },
+        ];
+      },
+      [{}, {}]
+    );
+
+    if (Object.keys(layoutChanges).length > 0 && instance.parent.updateLayout) {
+      instance.layoutProps = {
+        ...instance.layoutProps,
+        ...layoutChanges,
+      };
+      instance.parent.updateLayout(instance);
     }
-    if (typeof child.render === 'function') child.render(parentInstance); // we just added a new child, so we want to render it
-  },
 
-  appendChildToContainer(parentInstance, child) {
-    if (parentInstance.appendChild) {
-      parentInstance.appendChild(child);
-    }
-    if (typeof child.render === 'function') child.render(parentInstance); // we just added a new child, so we want to render it
-  },
-
-  removeChild(parentInstance, child) {
-    parentInstance.removeChild(child);
-  },
-
-  removeChildFromContainer(parentInstance, child) {
-    parentInstance.removeChild(child);
-  },
-
-  insertBefore(parentInstance, child, beforeChild) {
-    parentInstance.insertChild(child, beforeChild);
-  },
-
-  commitUpdate(instance, updatePayload, type, oldProps, newProps) {
-    if (typeof instance.update !== 'undefined') {
-      instance.update(oldProps, newProps);
+    if (instance.updateProps) {
+      instance.updateProps(propChanges);
     }
   },
 
   commitMount(instance, updatePayload, type, oldProps, newProps) {
-    // noop
+    console.log(instance, updatePayload, type, oldProps, newProps);
+    throw 'commitMount';
   },
 
   commitTextUpdate(textInstance, oldText, newText) {
-    textInstance = newText;
+    console.log(textInstance, oldText, newText);
+    throw 'commitTextUpdate';
   },
 
   supportsMutation: true,
   supportsPersistence: false,
 });
 
-export default DesktopRenderer;
+export default NewRenderer;

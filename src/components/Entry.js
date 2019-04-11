@@ -2,7 +2,7 @@ import libui from 'libui-node';
 
 /*
 interface Component {
-  widget?: LibUIWidget;
+  element?: LibUIWidget;
   layoutProps?: any;
   parent?: Component;
   appendChild?: (child) => void;
@@ -14,27 +14,26 @@ interface Component {
 }
 */
 
-export default (props, layoutProps) => {
-  const widget = new libui.UiEntry();
+export default (props) => {
+  const element = new libui.UiEntry();
 
-  widget.onChanged(() => {
-    if (props.value !== widget.text) {
+  element.onChanged(() => {
+    if (props.value !== element.text) {
       if (props.onChange) {
-        props.onChange(widget.text);
+        props.onChange(element.text);
       }
       if (props.value != undefined) {
-        widget.setText(props.value);
+        element.setText(props.value);
       }
     }
   });
 
   if (props.value) {
-    widget.setText(props.value);
+    element.setText(props.value);
   }
 
   return {
-    widget,
-    layoutProps,
+    element,
     updateProps: changes => {
       props = {
         ...props,
@@ -42,7 +41,7 @@ export default (props, layoutProps) => {
       };
 
       if (changes.value) {
-        widget.setText(props.value);
+        element.setText(props.value);
       }
     },
   };

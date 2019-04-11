@@ -1,50 +1,61 @@
-import libui from 'libui-node';
-import DesktopComponent, {
-  universalPropTypes,
-  universalDefaultProps,
-} from './DesktopComponent';
 
-import PropTypes from 'prop-types';
-import { disconnectDevtools } from '../devtools';
+import { startLoop, onShouldQuit, stopLoop } from 'libui-node';
 
-class App extends DesktopComponent {
-  constructor(root, props) {
-    super(root, props);
-    this.root = root;
-    this.props = { ...props };
-    this.newElement();
-    this.setDefaults(props);
+const App = () => {
+  const windows = [];
+
+  startLoop();
+  
+  const quit = () => {
+    windows.splice(0).forEach(w => w.close());
+    stopLoop();
   }
 
-  newElement() {
-    this.element = {};
-  }
+  onShouldQuit(quit);
 
-  update(oldProps, newProps) {
-    if (newProps.onShouldQuit !== oldProps.onShouldQuit) {
-      libui.Ui.onShouldQuit(() => {
-        this.newProps.onShouldQuit();
-        libui.stopLoop();
-      });
+  const isWindow = child =>
+    child.element && child.element.show && child.element.close;
+
+  const appendChild = child => {
+    if (!isWindow(child)) {
+      throw new Error('Child is not a window');
     }
-  }
+    windows.push(child.element);
+    child.element.show();
+  };
 
-  render() {
-    libui.Ui.onShouldQuit(() => {
-      this.props.onShouldQuit();
-      disconnectDevtools();
-      libui.stopLoop();
-    });
-    this.renderChildNode(this);
-  }
-}
+  const insertChild = (child, beforeChild) => {
+    if (!isWindow(child)) {
+      throw new Error('Child is not a window');
+    }
+    if (windows.includes(child.element)) {
+      throw new Error(`Can't add the same window twice`);
+    }
+    if (!windows.includes(beforeChild.element)) {
+      throw new Error(`Relative element does not exist`);
+    }
+    const i = windows.indexOf(beforeChild.element);
+    windows.splice(0, i, child.element);
+    child.element.show();
+  };
 
-App.propTypes = {
-  onShouldQuit: PropTypes.func,
-};
+  const removeChild = child => {
+    if (!isWindow(child)) {
+      throw new Error('Child is not a window');
+    }
+    if (!windows.includes(child.element)) {
+      throw new Error(`Can't remove a child that's not added`);
+    }
+    const i = windows.indexOf(child.element);
+    windows.splice(i, 1)[0].close();
+  };
 
-App.defaultProps = {
-  onShouldQuit: () => {},
+  return {
+    appendChild,
+    insertChild,
+    removeChild,
+    quit
+  };
 };
 
 export default App;

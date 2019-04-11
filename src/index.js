@@ -1,4 +1,4 @@
-import render, { App } from './render';
+import render from './render';
 import {
   Box,
   TextInput,
@@ -9,7 +9,7 @@ import {
   Area,
   StyledText,
 } from './react-components';
-import { Dialog } from './components';
+import { App, Dialog } from './components';
 
 // Aliases for createElement method
 const Text = 'TEXT';
