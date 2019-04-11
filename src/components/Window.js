@@ -1,5 +1,6 @@
 import { UiWindow, Size } from 'libui-node';
 import { UnaryContainer } from './Container';
+import propsUpdater from './propsUpdater';
 
 export default props => {
   const {
@@ -20,46 +21,40 @@ export default props => {
     child => element.setChild(child.element)
   );
 
+  const handlers = {
+    onClose: props.onClose,
+    onContentSizeChanged: props.onContentSizeChanged
+  }
+
   element.onClosing(() => {
-    if(props.onClose) {
-      props.onClose();
+    if(handlers.onClose) {
+      handlers.onClose();
     }
   });
 
   element.onContentSizeChanged(() => {
-    if(props.onContentSizeChanged) {
-      props.onContentSizeChanged(
+    if(handlers.onContentSizeChanged) {
+      handlers.onContentSizeChanged(
         element.contentSize.w,
         element.contentSize.h
       );
     }
   });
 
-  const updateProps = changes => {
-    props = {
-      ...props,
-      ...changes
-    };
-
-    if(changes.title) {
-      element.title = props.title;
+  const updateProps = propsUpdater(
+    [element, 'title', 'margined', 'fullscreen', 'borderless'],
+    [handlers, 'onClose', 'onContentSizeChanged'],
+    {
+      width: width => element.setContentSize(new Size(
+        width,
+        element.contentSize.h
+      )),
+      height: height => element.setContentSize(new Size(
+        element.contentSize.w,
+        height
+      ))
     }
-    if(changes.width || changes.height) {
-      element.setContentSize(new Size(
-        props.width || element.contentSize.w,
-        props.height || element.contentSize.h
-      ));
-    }
-    if(changes.margined) {
-      element.margined = props.margined;
-    }
-    if(changes.fullscreen) {
-      element.fullscreen = props.fullscreen;
-    }
-    if(changes.borderless) {
-      element.borderless = props.borderless;
-    }
-  }
+  )
 
   updateProps(props);
 
