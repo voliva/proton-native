@@ -1,21 +1,37 @@
-import { UiWindow } from 'libui-node';
+import { UiWindow, Size } from 'libui-node';
 
-export default (initialProps, layoutProps) => {
+export default (props, layoutProps) => {
   const {
     title,
-    initialHeight = 400,
-    initialWidth = 300,
+    height = 400,
+    width = 300,
     initialHasMenuBar = true,
-  } = initialProps;
+  } = props;
 
   let attachedChild = null;
 
   const widget = UiWindow(
     title,
-    initialHeight,
-    initialWidth,
+    width,
+    height,
     initialHasMenuBar
   );
+
+  widget.onClosing(() => {
+    if(props.onClose) {
+      props.onClose();
+    }
+  });
+
+  widget.onContentSizeChanged(() => {
+    if(props.onContentSizeChanged) {
+      props.onContentSizeChanged(
+        widget.contentSize.w,
+        widget.contentSize.h
+      );
+    }
+  });
+
   const appendChild = child => {
     if (!child.widget) {
       throw new Error(`Window child doesnt have any widget`);
@@ -31,12 +47,40 @@ export default (initialProps, layoutProps) => {
     throw new Error(`Can't remove children from window`);
   };
 
+  const updateProps = changes => {
+    props = {
+      ...props,
+      ...changes
+    };
+
+    if(changes.title) {
+      widget.title = props.title;
+    }
+    if(changes.width || changes.height) {
+      widget.setContentSize(new Size(
+        props.width || widget.contentSize.w,
+        props.height || widget.contentSize.h
+      ));
+    }
+    if(changes.margined) {
+      widget.margined = props.margined;
+    }
+    if(changes.fullscreen) {
+      widget.fullscreen = props.fullscreen;
+    }
+    if(changes.borderless) {
+      widget.borderless = props.borderless;
+    }
+  }
+
+  updateProps(props);
+
   return {
-    type: 'Window',
     widget,
     layoutProps,
     appendChild,
     insertChild: appendChild,
     removeChild,
+    updateProps
   };
 };

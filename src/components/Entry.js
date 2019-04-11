@@ -36,13 +36,12 @@ export default (props, layoutProps) => {
     widget,
     layoutProps,
     updateProps: changes => {
-      const oldProps = props;
       props = {
         ...props,
         ...changes,
       };
 
-      if (props.value !== oldProps.value) {
+      if (changes.value) {
         widget.setText(props.value);
       }
     },

@@ -277,10 +277,13 @@ export const App = () => {
   const windows = [];
 
   startLoop();
-  onShouldQuit(() => {
+  
+  const quit = () => {
     windows.splice(0).forEach(w => w.close());
     stopLoop();
-  });
+  }
+
+  onShouldQuit(quit);
 
   const isWindow = child =>
     child.widget && child.widget.show && child.widget.close;
@@ -324,6 +327,7 @@ export const App = () => {
     appendChild,
     insertChild,
     removeChild,
+    quit
   };
 };
 
