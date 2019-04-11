@@ -78,9 +78,13 @@ const NewRenderer = Reconciler({
     return false; // TODO
   },
 
-  getPublicInstance(inst) {
-    console.log(inst);
-    throw 'getPublicInstance';
+  getPublicInstance(instance) {
+    console.log('getPublicInstance', instance.widget);
+
+    if (!instance.widget) {
+      throw new Error(`Component doesn't have any widget available`);
+    }
+    return instance.widget;
   },
 
   prepareForCommit(rootContainerInstance) {
