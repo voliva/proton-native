@@ -85,12 +85,15 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
     );
     if (rotate) {
       const current = mat.transformPoint(zero);
-      const x = fallback(rotate[2], '50%', v => parseSelf(v, false)) + current.x;
-      const y = fallback(rotate[3], '50%', v => parseSelf(v, true)) + current.y;
+      const relativeOrigin = new libui.SizeDouble(
+        fallback(rotate[2], '50%', v => parseSelf(v, false)),
+        fallback(rotate[3], '50%', v => parseSelf(v, true))
+      );
+      const origin = mat.transformSize(relativeOrigin);
 
       const rad = Number(rotate[1]) * (Math.PI / 180);
 
-      mat.rotate(x, y, rad);
+      mat.rotate(current.x + origin.w, current.y + origin.h, rad);
     }
 
     // translate(x [y])
@@ -102,6 +105,28 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
       const x = parseSelf(translate[1], false);
       const y = fallback(translate[2], translate[1], v => parseSelf(v, true));
       mat.translate(x, y);
+    }
+
+    // 1: scale(x)
+    // 2: scale(x, y)
+    // 3: scale(x, xCenter, yCenter)
+    // 4: scale(x, y, xCenter, yCenter)
+    // default y: x, xCenter=yCenter: 50%
+    const scale = transform.match(
+      /scale\s*\(([-0-9.]+)(?:(?:\s*,\s*([-0-9.]+))?(?:\s*,\s*([-0-9.%]+)\s*,\s*([-0-9.%]+))?)?\)/
+    );
+    if (scale) {
+      const current = mat.transformPoint(zero);
+      const relativeOrigin = new libui.SizeDouble(
+        fallback(scale[3], '50%', v => parseSelf(v, false)),
+        fallback(scale[4], '50%', v => parseSelf(v, true))
+      );
+      const origin = mat.transformSize(relativeOrigin);
+
+      mat.scale(
+        current.x + origin.w,
+        current.y + origin.h,
+        Number(scale[1]), fallback(scale[2], scale[1]));
     }
   }
 

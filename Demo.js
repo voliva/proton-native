@@ -40,7 +40,9 @@ const Example = () => {
             width="100"
             height="200"
             fill="blue"
-            transform={`translate(50%) rotate(${value})`}
+            transform={`translate(100, 200) rotate(45) scale(${(value % 100 -
+              50) /
+              30})`}
           />
         </Area>
       </VerticalBox>
