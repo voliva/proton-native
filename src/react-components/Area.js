@@ -77,6 +77,20 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
     }
   };
 
+  const getOrigin = (relativeOriginX, relativeOriginY) => {
+    const current = mat.transformPoint(zero);
+    const relativeOrigin = new libui.SizeDouble(
+      fallback(relativeOriginX, '50%', v => parseSelf(v, false)),
+      fallback(relativeOriginY, '50%', v => parseSelf(v, true))
+    );
+    const {w, h} = mat.transformSize(relativeOrigin);
+
+    return {
+      x: current.x + w,
+      y: current.y + h
+    }
+  }
+
   for (const transform of transformProp.match(/\w+\([^)]+\)/g)) {
     // rotate(deg [,x, y])
     // default x: 50%, y: 50%
@@ -84,16 +98,10 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
       /rotate\s*\(\s*([-0-9.]+)(?:\s*,\s*([-0-9.%]+)\s*,\s*([-0-9.%]+))?\s*\)/
     );
     if (rotate) {
-      const current = mat.transformPoint(zero);
-      const relativeOrigin = new libui.SizeDouble(
-        fallback(rotate[2], '50%', v => parseSelf(v, false)),
-        fallback(rotate[3], '50%', v => parseSelf(v, true))
-      );
-      const origin = mat.transformSize(relativeOrigin);
-
       const rad = Number(rotate[1]) * (Math.PI / 180);
+      const { x, y } = getOrigin(rotate[2], rotate[3]);
 
-      mat.rotate(current.x + origin.w, current.y + origin.h, rad);
+      mat.rotate(x, y, rad);
     }
 
     // translate(x [y])
@@ -116,17 +124,25 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
       /scale\s*\(([-0-9.]+)(?:(?:\s*,\s*([-0-9.]+))?(?:\s*,\s*([-0-9.%]+)\s*,\s*([-0-9.%]+))?)?\)/
     );
     if (scale) {
-      const current = mat.transformPoint(zero);
-      const relativeOrigin = new libui.SizeDouble(
-        fallback(scale[3], '50%', v => parseSelf(v, false)),
-        fallback(scale[4], '50%', v => parseSelf(v, true))
-      );
-      const origin = mat.transformSize(relativeOrigin);
+      const scaleX = Number(scale[1]);
+      const scaleY = fallback(scale[2], scale[1]);
+      const { x, y } = getOrigin(scale[3], scale[4]);
 
-      mat.scale(
-        current.x + origin.w,
-        current.y + origin.h,
-        Number(scale[1]), fallback(scale[2], scale[1]));
+      mat.scale(x, y, scaleX, scaleY);
+    }
+
+    // skew(a, b [,x, y])
+    // a, b: x/y angle
+    // default x=y: 50%
+    const skew = transform.match(
+      /skew\s*\(\s*([-0-9.]+)\s*,\s*([-0-9.]+)(?:,\s*([-0-9.%]+),\s*([-0-9.%]+))?\)/
+    );
+    if (skew) {
+      const rad1 = Number(skew[1]) * (Math.PI / 180);
+      const rad2 = Number(skew[2]) * (Math.PI / 180);
+      const { x, y } = getOrigin(skew[3], skew[4]);
+
+      mat.skew(x, y, rad1, rad2);
     }
   }
 
