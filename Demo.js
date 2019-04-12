@@ -1,6 +1,14 @@
 import React, { useState, useCallback } from 'react';
 
-import { render, Window, App, TextInput, Dialog, VerticalBox } from './src/';
+import {
+  render,
+  Window,
+  App,
+  Area,
+  TextInput,
+  Dialog,
+  VerticalBox,
+} from './src/';
 
 import { UiMenu } from 'libui-node';
 
@@ -13,10 +21,17 @@ const Example = () => {
   const [value, setValue] = useState('');
 
   return (
-    <Window title="Test" width={parseInt(value) || 500} height={500} margined={true} onClose={app.quit}>
+    <Window
+      title="Test"
+      width={parseInt(value) || 500}
+      height={500}
+      margined={true}
+      onClose={app.quit}
+    >
       <VerticalBox>
-        <TextInput onChange={setValue} />
-        {value.length > 0 && <TextInput />}
+        <Area stroke="red" strokeWidth="10" layoutStretchy={true}>
+          <Area.Rectangle x="10" y="10" width="100" height="200" fill="blue" />
+        </Area>
       </VerticalBox>
     </Window>
   );

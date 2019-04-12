@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Children, Component, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { AreaInternal } from '../';
 import libui from 'libui-node';
@@ -27,7 +27,73 @@ const AreaComponentDefaultProps = {
   strokeLinejoin: 'miter',
 };
 
-class Area extends Component {
+function createBrush(color, alpha) {
+  const brush = new libui.DrawBrush();
+  brush.color = toLibuiColor(color);
+  brush.color.alpha = brush.color.alpha * alpha;
+  brush.type = libui.brushType.solid;
+
+  return brush;
+}
+
+const Area = props => {
+  const { children } = props;
+
+  const draw = useCallback(
+    (area, p) => {
+      Children.forEach(children, child => {
+        const path = child.type.drawPath(area, p, child.props);
+
+        if (child.props.fill && child.props.fill != 'none') {
+          if (typeof child.props.fill == 'object') {
+            // gradient
+            p.getContext().fill(path, child.props.fill);
+          } else {
+            // solid
+            const fillBrush = createBrush(
+              Color(child.props.fill),
+              Number(child.props.fillOpacity)
+            );
+            p.getContext().fill(path, fillBrush);
+            fillBrush.free();
+          }
+        }
+
+        // TODO nested children
+
+        path.freePath();
+      });
+    },
+    [children]
+  );
+  const onMouseEvent = useCallback(() => {}, []);
+  const onMouseCrossed = useCallback(() => {}, []);
+  const onDragBroken = useCallback(() => {}, []);
+  const onKeyEvent = useCallback(() => {}, []);
+
+  return React.createElement(
+    HasAreaParentContext.Provider,
+    { value: true },
+    React.createElement(AreaInternal, {
+      draw,
+      onMouseEvent,
+      onMouseCrossed,
+      onDragBroken,
+      onKeyEvent,
+      layoutStretchy: props.layoutStretchy,
+    })
+  );
+};
+
+Area.Rectangle = () => null;
+Area.Rectangle.drawPath = (area, p, props) => {
+  const path = new libui.UiDrawPath(libui.fillMode.winding);
+  path.addRectangle(props.x, props.y, props.width, props.height);
+  path.end();
+  return path;
+};
+
+class AreaOld extends Component {
   render() {
     const {
       children,
@@ -68,15 +134,6 @@ class Area extends Component {
       onSizeChange,
       scrolling,
     };
-    return React.createElement(
-      HasAreaParentContext.Provider,
-      { value: true },
-      React.createElement(
-        AreaInternal,
-        areaProps,
-        React.createElement(Area.Group, groupProps, children)
-      )
-    );
   }
 }
 

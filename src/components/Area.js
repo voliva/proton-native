@@ -2,12 +2,44 @@ import DesktopComponent, {
   universalPropTypes,
   universalDefaultProps,
 } from './DesktopComponent';
-import React, { Component } from 'react';
 import libui from 'libui-node';
 import PropTypes from 'prop-types';
 import Color from 'color';
 import parseSVG from 'svg-path-parser';
 import { StyledText } from '..';
+import propsUpdater from './propsUpdater';
+
+const Area = (props) => {
+  const handlers = {
+    draw: props.draw,
+    onMouseEvent: props.onMouseEvent,
+    onMouseCrossed: props.onMouseCrossed,
+    onDragBroken: props.onDragBroken,
+    onKeyEvent: props.onKeyEvent
+  };
+
+  const element = new libui.UiArea(
+    (...args) => handlers.draw(...args),
+    (...args) => handlers.onMouseEvent(...args),
+    (...args) => handlers.onMouseCrossed(...args),
+    (...args) => handlers.onDragBroken(...args),
+    (...args) => handlers.onKeyEvent(...args),
+  );
+
+  const updateProps = propsUpdater(
+    [handlers, ...Object.keys(handlers)],
+    {
+      'draw': () => element.queueRedrawAll()
+    }
+  );
+
+  return {
+    element,
+    updateProps
+  }
+}
+
+export default Area;
 
 const onMouse = component => (area, evt) => {
   const down = evt.getDown();
@@ -97,7 +129,7 @@ const onKey = component => (area, event) => {
   }
 };
 
-class Area extends DesktopComponent {
+class AreaOld extends DesktopComponent {
   constructor(root, props) {
     super(root, props);
     this.root = root;
@@ -164,7 +196,7 @@ class Area extends DesktopComponent {
   }
 }
 
-Area.propTypes = {
+AreaOld.propTypes = {
   ...universalPropTypes,
   onMouseMove: PropTypes.func,
   onMouseUp: PropTypes.func,
@@ -184,7 +216,7 @@ Area.propTypes = {
   }),
 };
 
-Area.defaultProps = {
+AreaOld.defaultProps = {
   ...universalDefaultProps,
   onMouseMove: e => {},
   onMouseUp: e => {},
@@ -520,7 +552,7 @@ const AreaComponentDefaultProps = {
   strokeLinejoin: 'miter',
 };
 
-Area.Group = class AreaGroup extends AreaComponent {
+AreaOld.Group = class AreaGroup extends AreaComponent {
   constructor(root, props) {
     super(root, props);
     this.children = [];
@@ -555,13 +587,13 @@ Area.Group = class AreaGroup extends AreaComponent {
   }
 };
 
-Area.Group.propTypes = {
+AreaOld.Group.propTypes = {
   ...AreaComponentPropTypes,
   width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };
 
-Area.Rectangle = class Rectangle extends AreaComponent {
+AreaOld.Rectangle = class Rectangle extends AreaComponent {
   getWidth(p) {
     return this.parseParent(this.props.width, p);
   }
@@ -583,7 +615,7 @@ Area.Rectangle = class Rectangle extends AreaComponent {
   }
 };
 
-Area.Rectangle.propTypes = {
+AreaOld.Rectangle.propTypes = {
   ...AreaComponentPropTypes,
   x: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   y: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
@@ -1016,5 +1048,3 @@ Area.Text.defaultProps = {
   x: 0,
   y: 0,
 };
-
-export default Area;
