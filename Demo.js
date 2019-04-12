@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 import {
   render,
@@ -18,30 +18,29 @@ menu.appendQuitItem();
 const app = new App();
 
 const Example = () => {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    setInterval(() => {
+      setValue(v => v + 1);
+    }, 60);
+  }, []);
 
   return (
     <Window
       title="Test"
-      width={parseInt(value) || 500}
+      width={500}
       height={500}
       margined={true}
       onClose={app.quit}
     >
       <VerticalBox>
-        <Area
-          stroke="red"
-          strokeWidth="10"
-          layoutStretchy={true}
-          transform="translate(50%)"
-        >
+        <Area stroke="red" strokeWidth="10" layoutStretchy={true}>
           <Area.Rectangle
-            x="10"
-            y="10"
             width="100"
             height="200"
             fill="blue"
-            transform="translate(-50%)"
+            transform={`translate(50%) rotate(${value})`}
           />
         </Area>
       </VerticalBox>

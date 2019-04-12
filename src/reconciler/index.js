@@ -1,4 +1,3 @@
-
 import * as Components from '../components';
 const Reconciler = require('react-reconciler');
 
@@ -16,6 +15,15 @@ const getLayoutProps = props => ({
 });
 
 const NewRenderer = Reconciler({
+  schedulePassiveEffects: fn => {
+    console.log('schedulePassiveEffects');
+    fn(); // TODO
+  },
+  cancelPassiveEffects: () => {
+    console.log('cancelPassiveEffects');
+    // TODO
+  },
+
   createInstance(
     type,
     props,

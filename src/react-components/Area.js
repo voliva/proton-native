@@ -51,6 +51,7 @@ function fallback(...vals) {
 
 const getTransformationMatrix = (transformProp, measureFn = false) => {
   const mat = new libui.UiDrawMatrix();
+  const zero = new libui.PointDouble(0, 0);
   mat.setIdentity();
 
   let measured = null;
@@ -77,17 +78,30 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
   };
 
   for (const transform of transformProp.match(/\w+\([^)]+\)/g)) {
+    // rotate(deg [,x, y])
+    // default x: 50%, y: 50%
+    const rotate = transform.match(
+      /rotate\s*\(\s*([-0-9.]+)(?:\s*,\s*([-0-9.%]+)\s*,\s*([-0-9.%]+))?\s*\)/
+    );
+    if (rotate) {
+      const current = mat.transformPoint(zero);
+      const x = fallback(rotate[2], '50%', v => parseSelf(v, false)) + current.x;
+      const y = fallback(rotate[3], '50%', v => parseSelf(v, true)) + current.y;
+
+      const rad = Number(rotate[1]) * (Math.PI / 180);
+
+      mat.rotate(x, y, rad);
+    }
+
     // translate(x [y])
     // default y: x
     const translate = transform.match(
       /translate\s*\(\s*([-0-9.%]+)(?:\s*,\s*([-0-9.%]+))?\s*\)/
     );
-
     if (translate) {
-      mat.translate(
-        parseSelf(translate[1], false),
-        fallback(translate[2], translate[1], v => parseSelf(v, true))
-      );
+      const x = parseSelf(translate[1], false);
+      const y = fallback(translate[2], translate[1], v => parseSelf(v, true));
+      mat.translate(x, y);
     }
   }
 
@@ -163,6 +177,10 @@ const Area = props => {
 };
 
 Area.Rectangle = () => null;
+Area.Rectangle.defaultProps = {
+  x: 0,
+  y: 0,
+};
 Area.Rectangle.draw = (props, area, p) => {
   const path = new libui.UiDrawPath(libui.fillMode.winding);
   path.addRectangle(props.x, props.y, props.width, props.height);
