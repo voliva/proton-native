@@ -75,7 +75,50 @@ const Area = props => {
     },
     [children, transform, stroke, strokeWidth, fill]
   );
-  const onMouseEvent = useCallback(() => {}, []);
+
+  const { onMouseUp, onMouseDown, onMouseMove, } = props;
+  const onMouseEvent = useCallback((area, evt) => {
+    const baseEvent = {
+      x: evt.getX(),
+      y: evt.getY(),
+      width: evt.getAreaWidth(),
+      height: evt.getAreaHeight()
+    };
+
+    const down = evt.getDown();
+    const up = evt.getUp();
+    if (up) {
+      if(!onMouseUp) return;
+      return onMouseUp({
+        ...baseEvent,
+        button: up,
+      });
+    }
+
+    if (down) {
+      if(!onMouseDown) return;
+      return onMouseDown({
+        ...baseEvent,
+        button: down,
+        count: evt.getCount(),
+      });
+    }
+
+    if(!onMouseMove) return;
+
+    const buttons = [];
+    const held = evt.getHeld1To64();
+    if (held > 0) {
+      for (let i = 0; i <= 6; i++) {
+        if (held & Math.pow(2, i)) buttons.push(i + 1);
+        if (!(held >> (i + 1))) break;
+      }
+    }
+    onMouseMove({
+      ...baseEvent,
+      buttons,
+    });
+  }, [onMouseUp, onMouseDown, onMouseMove]);
   const onMouseCrossed = useCallback(() => {}, []);
   const onDragBroken = useCallback(() => {}, []);
   const onKeyEvent = useCallback(() => {}, []);
