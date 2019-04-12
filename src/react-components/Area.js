@@ -36,6 +36,37 @@ function createBrush(color, alpha) {
   return brush;
 }
 
+function fallback(...vals) {
+  let func = a => Number(a);
+  if (typeof vals[vals.length - 1] === 'function') {
+    func = vals.pop();
+  }
+
+  for (let v of vals) {
+    if (typeof v !== 'undefined') {
+      return func(v);
+    }
+  }
+}
+
+const getTransformationMatrix = (transformProp, measureFn) => {
+  const mat = new libui.UiDrawMatrix();
+  mat.setIdentity();
+
+  for (const transform of transformProp.match(/\w+\([^)]+\)/g)) {
+    // translate(x [y])
+    // default y: x
+    const translate = transform.match(
+      /translate\s*\(\s*([-0-9.%]+)(?:\s*,\s*([-0-9.%]+))?\s*\)/
+    );
+    if (translate) {
+      mat.translate(translate[1], fallback(translate[2], translate[1]));
+    }
+  }
+
+  return mat;
+};
+
 const drawChild = (parentProps, area, p) => child => {
   if (typeof child !== 'object' || !child.type) {
     return;
@@ -46,19 +77,35 @@ const drawChild = (parentProps, area, p) => child => {
     ...child.props,
   };
 
+  if (child.props.transform) {
+    p.getContext().save();
+    p.getContext().transform(getTransformationMatrix(child.props.transform));
+  }
+
   if (child.type.draw) {
     child.type.draw(mergedProps, area, p);
   }
 
   Children.forEach(child.props.children, drawChild(mergedProps, area, p));
+
+  if (child.props.transform) {
+    p.getContext().restore();
+  }
 };
 
 const Area = props => {
   const { children } = props;
 
   const draw = useCallback(
-    (area, p) => Children.forEach(children, drawChild(props, area, p)),
-    [children]
+    (area, p) => {
+      const pseudoChild = {
+        type: {},
+        props,
+      };
+
+      drawChild({}, area, p)(pseudoChild);
+    },
+    [children] // TODO Other "relevant props" i.e. transform, stroke, fill, etc.
   );
   const onMouseEvent = useCallback(() => {}, []);
   const onMouseCrossed = useCallback(() => {}, []);

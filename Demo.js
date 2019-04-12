@@ -29,7 +29,12 @@ const Example = () => {
       onClose={app.quit}
     >
       <VerticalBox>
-        <Area stroke="red" strokeWidth="10" layoutStretchy={true}>
+        <Area
+          stroke="red"
+          strokeWidth="10"
+          layoutStretchy={true}
+          transform="translate(-50, 30)"
+        >
           <Area.Rectangle x="10" y="10" width="100" height="200" fill="blue" />
         </Area>
       </VerticalBox>
