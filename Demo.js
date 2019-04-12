@@ -21,9 +21,9 @@ const Example = () => {
   const [value, setValue] = useState(0);
 
   useEffect(() => {
-    setInterval(() => {
-      setValue(v => v + 1);
-    }, 60);
+    // setInterval(() => {
+    //   setValue(v => v + 1);
+    // }, 60);
   }, []);
 
   return (
@@ -40,8 +40,7 @@ const Example = () => {
             width="100"
             height="200"
             fill="blue"
-            transform={`translate(100, 200) skew(${value % 360}, ${value %
-              360})`}
+            transform={`translate(100, 200) matrix(1, 0, 0, 1, -100, -200)`}
           />
         </Area>
       </VerticalBox>

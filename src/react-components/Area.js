@@ -49,6 +49,11 @@ function fallback(...vals) {
   }
 }
 
+const logMatrix = (mat, label) => {
+  console.log(label, mat.m11, mat.m21, mat.m31);
+  console.log(label, mat.m12, mat.m22, mat.m32);
+}
+
 const getTransformationMatrix = (transformProp, measureFn = false) => {
   const mat = new libui.UiDrawMatrix();
   const zero = new libui.PointDouble(0, 0);
@@ -143,6 +148,25 @@ const getTransformationMatrix = (transformProp, measureFn = false) => {
       const { x, y } = getOrigin(skew[3], skew[4]);
 
       mat.skew(x, y, rad1, rad2);
+    }
+
+    // matrix(a, b, c, d, e, f, g)
+    const matrix = transform.match(
+      /matrix\s*\(\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*\)/
+    );
+    if (matrix) {
+      const newMat = new libui.UiDrawMatrix();
+      newMat.setM11(matrix[1]);
+      newMat.setM12(matrix[2]);
+      newMat.setM21(matrix[3]);
+      newMat.setM22(matrix[4]);
+      newMat.setM31(matrix[5]);
+      newMat.setM32(matrix[6]);
+
+      logMatrix(mat, 'mat');
+      logMatrix(newMat, 'newMat');
+      mat.multiply(newMat);
+      logMatrix(mat, 'mat');
     }
   }
 
