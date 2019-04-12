@@ -49,9 +49,32 @@ function fallback(...vals) {
   }
 }
 
-const getTransformationMatrix = (transformProp, measureFn) => {
+const getTransformationMatrix = (transformProp, measureFn = false) => {
   const mat = new libui.UiDrawMatrix();
   mat.setIdentity();
+
+  let measured = null;
+
+  const parseSelf = (val, y = false) => {
+    if (typeof val === 'number') {
+      return val;
+    }
+
+    if (typeof val === 'string') {
+      if (val.slice(-1) === '%') {
+        if (!measureFn) {
+          throw new Error(`Can't measure component`);
+        }
+        if (!measured) {
+          measured = measureFn();
+        }
+        let num = Number(val.slice(0, -1));
+        return num / 100 * (y ? measured.height : measured.width);
+      }
+
+      return Number(val);
+    }
+  };
 
   for (const transform of transformProp.match(/\w+\([^)]+\)/g)) {
     // translate(x [y])
@@ -59,8 +82,12 @@ const getTransformationMatrix = (transformProp, measureFn) => {
     const translate = transform.match(
       /translate\s*\(\s*([-0-9.%]+)(?:\s*,\s*([-0-9.%]+))?\s*\)/
     );
+
     if (translate) {
-      mat.translate(translate[1], fallback(translate[2], translate[1]));
+      mat.translate(
+        parseSelf(translate[1], false),
+        fallback(translate[2], translate[1], v => parseSelf(v, true))
+      );
     }
   }
 
@@ -79,7 +106,11 @@ const drawChild = (parentProps, area, p) => child => {
 
   if (child.props.transform) {
     p.getContext().save();
-    p.getContext().transform(getTransformationMatrix(child.props.transform));
+    const mat = getTransformationMatrix(
+      child.props.transform,
+      child.type.measureFn && (() => child.type.measureFn(mergedProps, area, p))
+    );
+    p.getContext().transform(mat);
   }
 
   if (child.type.draw) {
@@ -99,7 +130,12 @@ const Area = props => {
   const draw = useCallback(
     (area, p) => {
       const pseudoChild = {
-        type: {},
+        type: {
+          measureFn: (props, area, p) => ({
+            width: p.getAreaWidth(),
+            height: p.getAreaHeight(),
+          }),
+        },
         props,
       };
 
@@ -195,6 +231,10 @@ Area.Rectangle.draw = (props, area, p) => {
 
   return path;
 };
+Area.Rectangle.measureFn = (props, area, p) => ({
+  width: props.width,
+  height: props.height,
+});
 
 class AreaOld extends Component {
   render() {

@@ -33,9 +33,16 @@ const Example = () => {
           stroke="red"
           strokeWidth="10"
           layoutStretchy={true}
-          transform="translate(-50, 30)"
+          transform="translate(50%)"
         >
-          <Area.Rectangle x="10" y="10" width="100" height="200" fill="blue" />
+          <Area.Rectangle
+            x="10"
+            y="10"
+            width="100"
+            height="200"
+            fill="blue"
+            transform="translate(-50%)"
+          />
         </Area>
       </VerticalBox>
     </Window>
