@@ -36,34 +36,28 @@ function createBrush(color, alpha) {
   return brush;
 }
 
+const drawChild = (parentProps, area, p) => child => {
+  if (typeof child !== 'object' || !child.type) {
+    return;
+  }
+
+  const mergedProps = {
+    ...parentProps,
+    ...child.props,
+  };
+
+  if (child.type.draw) {
+    child.type.draw(mergedProps, area, p);
+  }
+
+  Children.forEach(child.props.children, drawChild(mergedProps, area, p));
+};
+
 const Area = props => {
   const { children } = props;
 
   const draw = useCallback(
-    (area, p) => {
-      Children.forEach(children, child => {
-        const path = child.type.drawPath(area, p, child.props);
-
-        if (child.props.fill && child.props.fill != 'none') {
-          if (typeof child.props.fill == 'object') {
-            // gradient
-            p.getContext().fill(path, child.props.fill);
-          } else {
-            // solid
-            const fillBrush = createBrush(
-              Color(child.props.fill),
-              Number(child.props.fillOpacity)
-            );
-            p.getContext().fill(path, fillBrush);
-            fillBrush.free();
-          }
-        }
-
-        // TODO nested children
-
-        path.freePath();
-      });
-    },
+    (area, p) => Children.forEach(children, drawChild(props, area, p)),
     [children]
   );
   const onMouseEvent = useCallback(() => {}, []);
@@ -86,10 +80,72 @@ const Area = props => {
 };
 
 Area.Rectangle = () => null;
-Area.Rectangle.drawPath = (area, p, props) => {
+Area.Rectangle.draw = (props, area, p) => {
   const path = new libui.UiDrawPath(libui.fillMode.winding);
   path.addRectangle(props.x, props.y, props.width, props.height);
   path.end();
+
+  if (props.stroke && props.stroke != 'none') {
+    const sp = new libui.DrawStrokeParams();
+
+    switch (props.strokeLinecap) {
+      case 'flat':
+        sp.cap = libui.lineCap.flat;
+        break;
+      case 'round':
+        sp.cap = libui.lineCap.round;
+        break;
+      case 'square':
+        sp.cap = libui.lineCap.square;
+        break;
+    }
+
+    switch (props.strokeLinejoin) {
+      case 'miter':
+        sp.join = libui.lineJoin.miter;
+        break;
+      case 'round':
+        sp.join = libui.lineJoin.round;
+        break;
+      case 'bevel':
+        sp.join = libui.lineJoin.bevel;
+        break;
+    }
+
+    sp.thickness = Number(props.strokeWidth);
+    sp.miterLimit = Number(props.strokeMiterlimit);
+
+    if (typeof props.stroke == 'object') {
+      // gradient
+      p.getContext().stroke(path, props.stroke, sp);
+    } else {
+      // solid
+      const strokeBrush = createBrush(
+        Color(props.stroke),
+        Number(props.strokeOpacity)
+      );
+      p.getContext().stroke(path, strokeBrush, sp);
+      strokeBrush.free();
+    }
+
+    sp.free();
+  }
+
+  if (props.fill && props.fill != 'none') {
+    if (typeof props.fill == 'object') {
+      // gradient
+      p.getContext().fill(path, props.fill);
+    } else {
+      // solid
+      const fillBrush = createBrush(
+        Color(props.fill),
+        Number(props.fillOpacity)
+      );
+      p.getContext().fill(path, fillBrush);
+      fillBrush.free();
+    }
+  }
+
   return path;
 };
 
