@@ -1,4 +1,4 @@
-import React, { Children, useCallback } from 'react';
+import React, { Children, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { AreaInternal } from '../';
 import libui from 'libui-node';
@@ -63,22 +63,103 @@ const drawChild = (parentProps, area, p) => child => {
   }
 };
 
+const captureChildMouseEvent = (parentProps, evt, area, contextMat) => child => {
+  if (typeof child !== 'object' || !child.type) {
+    return false;
+  }
+
+  const {
+    onMouseUp,
+    onMouseDown,
+    onMouseMove,
+    ...rest
+  } = parentProps;
+
+  const mergedProps = {
+    ...rest,
+    ...child.props,
+  };
+
+  if (child.props.transform) {
+    // Copy Matrix
+    const oldMat = contextMat;
+
+    // Seems like transform is applied by pre-multiplying
+    // https://github.com/andlabs/libui/blob/cda991b7e252874ce69ccdb7d1a40de49cee5839/windows/draw.cpp#L410
+    const pseudoP = {
+      getAreaHeight: () => evt.height,
+      getAreaWidth: () => evt.width
+    }
+    contextMat = getTransformationMatrix(
+      child.props.transform,
+      child.type.measureFn && (() => child.type.measureFn(mergedProps, area, pseudoP))
+    );
+    contextMat.multiply(oldMat);
+  }
+
+  let captured = false;
+  const childFn = captureChildMouseEvent(mergedProps, evt, area, contextMat);
+  Children.forEach(child.props.children, child => {
+    if(captured) return;
+    captured = childFn(child);
+  });
+
+  if (captured) {
+    return true;
+  }
+
+  if (!child.type.captureMouseEvent) {
+    return false;
+  }
+
+  if(!contextMat.invertible) {
+    console.warn('Matrix is not invertible, we can\'t capture mouse event per child');
+    return false;
+  }
+
+  // Copy Matrix
+  const inverted = new libui.UiDrawMatrix();
+  inverted.setIdentity();
+  inverted.multiply(contextMat);
+  inverted.invert();
+
+  const original = new libui.PointDouble(
+    evt.x,
+    evt.y
+  );
+  const target = inverted.transformPoint(original);
+
+  const targetEvt = {
+    ...evt,
+    targetX: target.x,
+    targetY: target.y
+  };
+
+  return child.type.captureMouseEvent(mergedProps, targetEvt, area);
+}
+
+const identity = new libui.UiDrawMatrix();
+identity.setIdentity();
 const Area = props => {
   const { children, transform, stroke, fill, strokeWidth } = props;
 
+  const pseudoChild = useMemo(() =>
+    React.createElement(
+      Area.Group,
+      props,
+      children
+    ),
+    [props]
+  );
+
   const draw = useCallback(
-    (area, p) => {
-      const pseudoChild = React.createElement(Area.Group, {
-        transform, stroke, fill, strokeWidth
-      }, children);
-      drawChild({}, area, p)(pseudoChild);
-    },
-    [children, transform, stroke, strokeWidth, fill]
+    (area, p) => drawChild({}, area, p)(pseudoChild),
+    [pseudoChild]
   );
 
   const { onMouseUp, onMouseDown, onMouseMove, } = props;
-  const onMouseEvent = useCallback((area, evt) => {
-    const baseEvent = {
+  const onMouseEvent = useCallback((area, evt, ...args) => {
+    const event = {
       x: evt.getX(),
       y: evt.getY(),
       width: evt.getAreaWidth(),
@@ -88,36 +169,25 @@ const Area = props => {
     const down = evt.getDown();
     const up = evt.getUp();
     if (up) {
-      if(!onMouseUp) return;
-      return onMouseUp({
-        ...baseEvent,
-        button: up,
-      });
-    }
-
-    if (down) {
-      if(!onMouseDown) return;
-      return onMouseDown({
-        ...baseEvent,
-        button: down,
-        count: evt.getCount(),
-      });
-    }
-
-    if(!onMouseMove) return;
-
-    const buttons = [];
-    const held = evt.getHeld1To64();
-    if (held > 0) {
-      for (let i = 0; i <= 6; i++) {
-        if (held & Math.pow(2, i)) buttons.push(i + 1);
-        if (!(held >> (i + 1))) break;
+      event.type = 'onMouseUp';
+      event.button = up;
+    } else if (down) {
+      event.type = 'onMouseDown';
+      event.button = down;
+    } else {
+      const buttons = [];
+      const held = evt.getHeld1To64();
+      if (held > 0) {
+        for (let i = 0; i <= 6; i++) {
+          if (held & Math.pow(2, i)) buttons.push(i + 1);
+          if (!(held >> (i + 1))) break;
+        }
       }
+      event.type = 'onMouseMove',
+      event.buttons = buttons;
     }
-    onMouseMove({
-      ...baseEvent,
-      buttons,
-    });
+
+    captureChildMouseEvent({}, event, area, identity)(pseudoChild);
   }, [onMouseUp, onMouseDown, onMouseMove]);
   const onMouseCrossed = useCallback(() => {}, []);
   const onDragBroken = useCallback(() => {}, []);
@@ -156,12 +226,26 @@ Area.Rectangle.measureFn = (props, area, p) => ({
   width: props.width,
   height: props.height,
 });
+Area.Rectangle.captureMouseEvent = (props, evt, area) => {
+  if(!props[evt.type]) return false;
+
+  if(evt.targetX >= props.x && evt.targetX <= props.x + props.width &&
+    evt.targetY >= props.y && evt.targetY <= props.y + props.height
+  ) {
+    return props[evt.type](evt);
+  }
+};
 
 Area.Group = () => null;
 Area.Group.measureFn = (props, area, p) => ({
   width: p.getAreaWidth(),
   height: p.getAreaHeight(),
 });
+Area.Group.captureMouseEvent = (props, evt, area) => {
+  if(!props[evt.type]) return false;
+
+  return props[evt.type](evt);
+};
 
 Area.Gradient = class AreaGradient {
   static create(options) {

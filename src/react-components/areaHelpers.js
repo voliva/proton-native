@@ -67,15 +67,15 @@ export const getTransformationMatrix = (transformProp, measureFn = false) => {
 
   const getOrigin = (relativeOriginX, relativeOriginY) => {
     const current = mat.transformPoint(zero);
-    const relativeOrigin = new libui.SizeDouble(
+    const relativeOrigin = new libui.PointDouble(
       fallback(relativeOriginX, '50%', v => parseSelf(v, false)),
       fallback(relativeOriginY, '50%', v => parseSelf(v, true))
     );
-    const {w, h} = mat.transformSize(relativeOrigin);
+    const {x, y} = mat.transformPoint(relativeOrigin);
 
     return {
-      x: current.x + w,
-      y: current.y + h
+      x: current.x + x,
+      y: current.y + y
     }
   }
 

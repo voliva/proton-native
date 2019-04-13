@@ -35,12 +35,18 @@ const Example = () => {
       onClose={app.quit}
     >
       <VerticalBox>
-        <Area stroke="red" strokeWidth="10" layoutStretchy={true}>
+        <Area stroke="red" strokeWidth="10" layoutStretchy={true}
+          transform={`rotate(30)`}
+          onMouseDown={evt => console.log('area', evt)}>
           <Area.Rectangle
             width="100"
             height="200"
             fill="blue"
-            transform={`translate(100, 200) matrix(1, 0, 0, 1, -100, -200)`}
+            transform={`translate(100, 200) rotate(30) skew(10, 10) scale(0.5)`}
+            onMouseDown={evt => {
+              console.log('rectangle', evt);
+              return true;
+            }}
           />
         </Area>
       </VerticalBox>
