@@ -1,4 +1,3 @@
-
 import * as Components from '../components';
 const Reconciler = require('react-reconciler');
 
@@ -16,6 +15,15 @@ const getLayoutProps = props => ({
 });
 
 const NewRenderer = Reconciler({
+  schedulePassiveEffects: fn => {
+    console.log('schedulePassiveEffects');
+    fn(); // TODO
+  },
+  cancelPassiveEffects: () => {
+    console.log('cancelPassiveEffects');
+    // TODO
+  },
+
   createInstance(
     type,
     props,
@@ -161,7 +169,11 @@ const NewRenderer = Reconciler({
 
   removeChild(container, child) {
     console.log('removeChild', container.element, child.element);
-    container.removeChild(child);
+    if (container.removeChild) {
+      container.removeChild(child);
+    } else {
+      throw new Error(`Can't remove child from ${container.constructor.name}`);
+    }
   },
 
   removeChildFromContainer(container, child) {
@@ -176,7 +188,13 @@ const NewRenderer = Reconciler({
       child.element,
       beforeChild.element
     );
-    container.insertChild(child, beforeChild);
+
+    if (container.insertChild) {
+      container.insertChild(child, beforeChild);
+      child.parent = container;
+    } else {
+      throw new Error(`Can't insert child to ${container.constructor.name}`);
+    }
   },
 
   commitUpdate(

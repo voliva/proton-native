@@ -39,15 +39,7 @@ const ProgressBar = 'PROGRESSBAR';
 const MenuBar = 'MENUBAR';
 const MenuBarItem = 'MENUBARITEM';
 const FontButton = 'FONTBUTTON';
-const AreaInternal = 'AREA';
-Area.Rectangle = 'AREARECTANGLE';
-Area.Line = 'AREALINE';
-Area.Arc = 'AREAARC';
-Area.Bezier = 'AREABEZIER';
-Area.Path = 'AREAPATH';
-Area.Group = 'AREAGROUP';
-Area.Circle = 'AREACIRCLE';
-Area.Text = 'AREATEXT';
+const AreaInternal = 'Area';
 
 export {
   render,
