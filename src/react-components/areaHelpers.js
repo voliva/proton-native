@@ -52,6 +52,11 @@ export const parseSize = relativeSize => val => {
   }
 };
 
+export const createParsers = ({ width, height }) => ({
+  parseX: parseSize(width),
+  parseY: parseSize(height)
+});
+
 export const getTransformationMatrix = (transformProp, { width, height }) => {
   const mat = new libui.UiDrawMatrix();
   const zero = new libui.PointDouble(0, 0);
