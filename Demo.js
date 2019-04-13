@@ -48,6 +48,18 @@ const Example = () => {
               return true;
             }}
           />
+          <Area.Bezier
+            stroke="black"
+            strokeWidth="8"
+            x1="100"
+            y1="250"
+            cx1="15"
+            cy1="10"
+            x2="400"
+            y2="250"
+            cx2="495"
+            cy2="5"
+          />
         </Area>
       </VerticalBox>
     </Window>

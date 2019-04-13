@@ -247,6 +247,29 @@ Area.Group.captureMouseEvent = (props, evt, area) => {
   return props[evt.type](evt);
 };
 
+Area.Bezier = () => null;
+Area.Bezier.draw = (props, area, p) => {
+  const path = new libui.UiDrawPath(libui.fillMode.winding);
+  path.newFigure(
+    props.x1,
+    props.y1,
+  );
+  path.bezierTo(
+    props.cx1,
+    props.cy1,
+    props.cx2,
+    props.cy2,
+    props.x2,
+    props.y2,
+  );
+  path.end();
+
+  strokePath(props, path, p);
+  fillPath(props, path, p);
+
+  return path;
+};
+
 Area.Gradient = class AreaGradient {
   static create(options) {
     const brush = new libui.DrawBrush();
