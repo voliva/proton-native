@@ -37,39 +37,34 @@ export const logMatrix = (mat, label) => {
   console.log(label, mat.m12, mat.m22, mat.m32);
 }
 
-export const getTransformationMatrix = (transformProp, measureFn = false) => {
+export const parseSize = relativeSize => val => {
+  if (typeof val === 'number') {
+    return val;
+  }
+
+  if (typeof val === 'string') {
+    if (val.slice(-1) === '%') {
+      let num = Number(val.slice(0, -1));
+      return num / 100 * relativeSize;
+    }
+
+    return Number(val);
+  }
+};
+
+export const getTransformationMatrix = (transformProp, { width, height }) => {
   const mat = new libui.UiDrawMatrix();
   const zero = new libui.PointDouble(0, 0);
   mat.setIdentity();
 
-  let measured = null;
-
-  const parseSelf = (val, y = false) => {
-    if (typeof val === 'number') {
-      return val;
-    }
-
-    if (typeof val === 'string') {
-      if (val.slice(-1) === '%') {
-        if (!measureFn) {
-          throw new Error(`Can't measure component`);
-        }
-        if (!measured) {
-          measured = measureFn();
-        }
-        let num = Number(val.slice(0, -1));
-        return num / 100 * (y ? measured.height : measured.width);
-      }
-
-      return Number(val);
-    }
-  };
+  const parseX = parseSize(width);
+  const parseY = parseSize(height);
 
   const getOrigin = (relativeOriginX, relativeOriginY) => {
     const current = mat.transformPoint(zero);
     const relativeOrigin = new libui.PointDouble(
-      fallback(relativeOriginX, '50%', v => parseSelf(v, false)),
-      fallback(relativeOriginY, '50%', v => parseSelf(v, true))
+      fallback(relativeOriginX, '50%', parseX),
+      fallback(relativeOriginY, '50%', parseY)
     );
     const {x, y} = mat.transformPoint(relativeOrigin);
 
@@ -98,8 +93,8 @@ export const getTransformationMatrix = (transformProp, measureFn = false) => {
       /translate\s*\(\s*([-0-9.%]+)(?:\s*,\s*([-0-9.%]+))?\s*\)/
     );
     if (translate) {
-      const x = parseSelf(translate[1], false);
-      const y = fallback(translate[2], translate[1], v => parseSelf(v, true));
+      const x = parseX(translate[1]);
+      const y = fallback(translate[2], translate[1], parseY);
       mat.translate(x, y);
     }
 

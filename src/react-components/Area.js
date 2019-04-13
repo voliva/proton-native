@@ -7,7 +7,8 @@ import {
   getTransformationMatrix,
   strokePath,
   fillPath,
-  toLibuiColor
+  toLibuiColor,
+  parseSize
 } from './areaHelpers';
 
 const HasAreaParentContext = React.createContext(false);
@@ -33,7 +34,7 @@ const AreaComponentDefaultProps = {
   strokeLinejoin: 'miter',
 };
 
-const drawChild = (parentProps, area, p) => child => {
+const drawChild = (parentProps, parentSize, area, p) => child => {
   if (typeof child !== 'object' || !child.type) {
     return;
   }
@@ -43,27 +44,29 @@ const drawChild = (parentProps, area, p) => child => {
     ...child.props,
   };
 
+  const ownSize = child.type.getSize(mergedProps, parentSize, area, p);
+
   if (child.props.transform) {
     p.getContext().save();
     const mat = getTransformationMatrix(
       child.props.transform,
-      child.type.measureFn && (() => child.type.measureFn(mergedProps, area, p))
+      ownSize
     );
     p.getContext().transform(mat);
   }
 
   if (child.type.draw) {
-    child.type.draw(mergedProps, area, p);
+    child.type.draw(mergedProps, parentSize, area, p);
   }
 
-  Children.forEach(child.props.children, drawChild(mergedProps, area, p));
+  Children.forEach(child.props.children, drawChild(mergedProps, ownSize, area, p));
 
   if (child.props.transform) {
     p.getContext().restore();
   }
 };
 
-const captureChildMouseEvent = (parentProps, evt, area, contextMat) => child => {
+const captureChildMouseEvent = (parentProps, evt, parentSize, area, contextMat) => child => {
   if (typeof child !== 'object' || !child.type) {
     return false;
   }
@@ -80,25 +83,23 @@ const captureChildMouseEvent = (parentProps, evt, area, contextMat) => child => 
     ...child.props,
   };
 
+  const ownSize = child.type.getSize(mergedProps, parentSize, area);
+
   if (child.props.transform) {
     // Copy Matrix
     const oldMat = contextMat;
 
     // Seems like transform is applied by pre-multiplying
     // https://github.com/andlabs/libui/blob/cda991b7e252874ce69ccdb7d1a40de49cee5839/windows/draw.cpp#L410
-    const pseudoP = {
-      getAreaHeight: () => evt.height,
-      getAreaWidth: () => evt.width
-    }
     contextMat = getTransformationMatrix(
       child.props.transform,
-      child.type.measureFn && (() => child.type.measureFn(mergedProps, area, pseudoP))
+      ownSize
     );
     contextMat.multiply(oldMat);
   }
 
   let captured = false;
-  const childFn = captureChildMouseEvent(mergedProps, evt, area, contextMat);
+  const childFn = captureChildMouseEvent(mergedProps, evt, parentSize, area, contextMat);
   Children.forEach(child.props.children, child => {
     if(captured) return;
     captured = childFn(child);
@@ -153,7 +154,16 @@ const Area = props => {
   );
 
   const draw = useCallback(
-    (area, p) => drawChild({}, area, p)(pseudoChild),
+    (area, p) => {
+      try {
+        drawChild({}, {
+          width: p.getAreaWidth(),
+          height: p.getAreaHeight()
+        }, area, p)(pseudoChild);
+      }catch (ex) {
+        console.error(ex);
+      }
+    },
     [pseudoChild]
   );
 
@@ -187,7 +197,7 @@ const Area = props => {
       event.buttons = buttons;
     }
 
-    captureChildMouseEvent({}, event, area, identity)(pseudoChild);
+    captureChildMouseEvent({}, event, event, area, identity)(pseudoChild);
   }, [onMouseUp, onMouseDown, onMouseMove]);
   const onMouseCrossed = useCallback(() => {}, []);
   const onDragBroken = useCallback(() => {}, []);
@@ -212,9 +222,20 @@ Area.Rectangle.defaultProps = {
   x: 0,
   y: 0,
 };
-Area.Rectangle.draw = (props, area, p) => {
+Area.Rectangle.draw = (props, parent, area, p) => {
   const path = new libui.UiDrawPath(libui.fillMode.winding);
-  path.addRectangle(props.x, props.y, props.width, props.height);
+
+  const parseX = parseSize(parent.width);
+  const parseY = parseSize(parent.height);
+
+  const {width, height} = Area.Rectangle.getSize(props, parent, area, p);
+
+  path.addRectangle(
+    parseX(props.x),
+    parseY(props.y),
+    width,
+    height
+  );
   path.end();
 
   strokePath(props, path, p);
@@ -222,9 +243,9 @@ Area.Rectangle.draw = (props, area, p) => {
 
   return path;
 };
-Area.Rectangle.measureFn = (props, area, p) => ({
-  width: props.width,
-  height: props.height,
+Area.Rectangle.getSize = (props, parent, area, p) => ({
+  width: parseSize(parent.width)(props.width),
+  height: parseSize(parent.height)(props.height),
 });
 Area.Rectangle.captureMouseEvent = (props, evt, area) => {
   if(!props[evt.type]) return false;
@@ -237,10 +258,7 @@ Area.Rectangle.captureMouseEvent = (props, evt, area) => {
 };
 
 Area.Group = () => null;
-Area.Group.measureFn = (props, area, p) => ({
-  width: p.getAreaWidth(),
-  height: p.getAreaHeight(),
-});
+Area.Group.getSize = (props, parent, area, p) => parent;
 Area.Group.captureMouseEvent = (props, evt, area) => {
   if(!props[evt.type]) return false;
 
@@ -248,19 +266,23 @@ Area.Group.captureMouseEvent = (props, evt, area) => {
 };
 
 Area.Bezier = () => null;
-Area.Bezier.draw = (props, area, p) => {
+Area.Bezier.draw = (props, parent, area, p) => {
   const path = new libui.UiDrawPath(libui.fillMode.winding);
+
+  const parseX = parseSize(parent.width);
+  const parseY = parseSize(parent.height);
+
   path.newFigure(
-    props.x1,
-    props.y1,
+    parseX(props.x1),
+    parseY(props.y1),
   );
   path.bezierTo(
-    props.cx1,
-    props.cy1,
-    props.cx2,
-    props.cy2,
-    props.x2,
-    props.y2,
+    parseX(props.cx1),
+    parseY(props.cy1),
+    parseX(props.cx2),
+    parseY(props.cy2),
+    parseX(props.x2),
+    parseY(props.y2),
   );
   path.end();
 
@@ -269,6 +291,7 @@ Area.Bezier.draw = (props, area, p) => {
 
   return path;
 };
+Area.Bezier.getSize = (props, parent, area, p) => parent;
 
 Area.Gradient = class AreaGradient {
   static create(options) {

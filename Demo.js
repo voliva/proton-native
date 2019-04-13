@@ -51,7 +51,7 @@ const Example = () => {
           <Area.Bezier
             stroke="black"
             strokeWidth="8"
-            x1="100"
+            x1="50%"
             y1="250"
             cx1="15"
             cy1="10"
