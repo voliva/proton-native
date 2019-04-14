@@ -1,11 +1,11 @@
 import { connectDevtools } from '../devtools';
-import NewRenderer from '../reconciler';
+import DesktopRenderer from '../reconciler';
 
 function render(element, window) {
-  connectDevtools(NewRenderer);
+  connectDevtools(DesktopRenderer);
 
-  const container = NewRenderer.createContainer(window);
-  NewRenderer.updateContainer(element, container, null);
+  const container = DesktopRenderer.createContainer(window);
+  DesktopRenderer.updateContainer(element, container, null);
 }
 
 export default render;

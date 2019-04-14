@@ -1,20 +1,6 @@
 import libui from 'libui-node';
 import propsUpdater from './propsUpdater';
 
-/*
-interface Component {
-  element?: LibUIWidget;
-  layoutProps?: any;
-  parent?: Component;
-  appendChild?: (child) => void;
-  insertChild?: (child, i) => void;
-  removeChild?: (child, i) => void;
-  updateProps?: changes => void;
-  updateLayout?: (child) => void;
-  finishUpdate?: () => void;
-}
-*/
-
 export default (props) => {
   const element = new libui.UiEntry();
 
