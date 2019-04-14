@@ -1,42 +1,12 @@
 import * as Components from '../components';
 const Reconciler = require('react-reconciler');
 
-const appendChild = (container, child) => {
-  if (container.appendChild) {
-    container.appendChild(child);
-    child.parent = container;
-  } else {
-    throw new Error(`Can't append child to ${container.constructor.name}`);
-  }
-};
-
-const getLayoutProps = props => ({
-  layoutStretchy: props.layoutStretchy,
-});
-
-const NewRenderer = Reconciler({
-  schedulePassiveEffects: fn => {
-    console.log('schedulePassiveEffects');
-    fn(); // TODO
-  },
-  cancelPassiveEffects: () => {
-    console.log('cancelPassiveEffects');
-    // TODO
+const DesktopRenderer = Reconciler({
+  appendInitialChild(container, child) {
+    appendChild(container, child);
   },
 
-  createInstance(
-    type,
-    props,
-    rootContainerInstance,
-    hostContext,
-    internalInstanceHandle
-  ) {
-    console.log(
-      'createInstance',
-      type,
-      rootContainerInstance.type,
-      hostContext
-    );
+  createInstance(type, props) {
     if (typeof Components[type] === 'undefined') {
       throw new Error(`Component ${type} doesn't exist`);
     }
@@ -46,57 +16,22 @@ const NewRenderer = Reconciler({
   },
 
   createTextInstance(text, rootContainerInstance, internalInstanceHandle) {
-    console.log(text, rootContainerInstance.type, internalInstanceHandle);
-    throw 'createTextInstance';
+    return text;
   },
 
-  finalizeInitialChildren(
-    instance,
-    type,
-    props,
-    rootContainerInstance,
-    hostContext
-  ) {
-    console.log(
-      'finalizeInitialChildren',
-      instance.element,
-      type,
-      rootContainerInstance.type,
-      hostContext
-    );
-
-    return false; // TODO
+  finalizeInitialChildren(instance, type, props) {
+    return false;
   },
 
-  getPublicInstance(instance) {
-    console.log('getPublicInstance', instance.element);
-
-    if (!instance.element) {
-      throw new Error(`Component doesn't have any element available`);
-    }
-    return instance.element;
+  getPublicInstance(inst) {
+    return inst;
   },
 
   prepareForCommit(rootContainerInstance) {
-    console.log('prepareForCommit', rootContainerInstance.type);
-    // TODO
+    // noop
   },
 
-  prepareUpdate(
-    instance,
-    type,
-    oldProps,
-    newProps,
-    rootContainerInstance,
-    hostContext
-  ) {
-    console.log(
-      'prepareUpdate',
-      instance.element,
-      type,
-      rootContainerInstance.type,
-      hostContext
-    );
+  prepareUpdate(instance, type, oldProps, newProps) {
     const propKeys = new Set(
       Object.keys(newProps).concat(Object.keys(oldProps))
     ).values();
@@ -104,91 +39,67 @@ const NewRenderer = Reconciler({
     const diff = {};
     for (let key of propKeys) {
       if (
-        key !== 'children' && // text children are already handled
+        key !== 'children' && // children are already handled by react-reconciler
         oldProps[key] !== newProps[key]
       ) {
         diff[key] = newProps[key];
       }
     }
-    console.log('diffed', diff);
-    return diff; // TODO
+
+    return diff;
   },
 
   resetAfterCommit(rootContainerInstance) {
-    console.log('resetAfterCommit', rootContainerInstance.type);
-    // TODO
+    // noop
   },
 
   resetTextContent(wordElement) {
-    console.log(wordElement);
-    throw 'resetTextContent';
+    // noop
   },
 
   getRootHostContext(rootContainerInstance) {
-    // TODO
-    console.log('getRootHostContext', rootContainerInstance.type);
     return {};
   },
 
   getChildHostContext(parentHostContext, type, rootContainerInstance) {
-    console.log(
-      'getChildHostContext',
-      parentHostContext,
-      type,
-      rootContainerInstance.type
-    );
     return parentHostContext;
-    // TODO;
   },
 
   shouldSetTextContent(type, props) {
-    console.log('shouldSetTextContext', type);
-    const textTypes = {};
-    return textTypes[type] || false;
+    return false;
   },
 
   now: () => new Date().getTime(),
 
   useSyncScheduling: true,
 
-  // MUTATION
-  appendInitialChild(container, child) {
-    console.log('appendInitialChild', container.element, child.element);
-    appendChild(container, child);
+  schedulePassiveEffects: fn => {
+    fn(); // TODO
   },
 
+  cancelPassiveEffects: () => {
+    // TODO
+  },
+
+  // MUTATION
+
   appendChild(container, child) {
-    console.log('appendChild', container.element, child.element);
     appendChild(container, child);
   },
 
   appendChildToContainer(container, child) {
-    console.log('appendChildToContainer', container.element, child.element);
     appendChild(container, child);
   },
 
   removeChild(container, child) {
-    console.log('removeChild', container.element, child.element);
-    if (container.removeChild) {
-      container.removeChild(child);
-    } else {
-      throw new Error(`Can't remove child from ${container.constructor.name}`);
-    }
+    removeChild(container, child);
   },
 
   removeChildFromContainer(container, child) {
-    console.log(container, child);
-    throw 'removeChildFromContainer';
+    removeChild(container, child);
   },
 
   insertBefore(container, child, beforeChild) {
-    console.log(
-      'insertBefore',
-      container.element,
-      child.element,
-      beforeChild.element
-    );
-
     if (container.insertChild) {
       container.insertChild(child, beforeChild);
       child.parent = container;
@@ -197,16 +108,7 @@ const NewRenderer = Reconciler({
     }
   },
 
-  commitUpdate(
-    instance,
-    updatePayload,
-    type,
-    oldProps,
-    newProps,
-    internalInstanceHandle
-  ) {
-    console.log('commitUpdate', instance.element, updatePayload, type);
-
+  commitUpdate(instance, updatePayload, type) {
     const layoutProps = ['layoutStretchy'];
 
     const [layoutChanges, propChanges] = Object.entries(updatePayload).reduce(
@@ -246,17 +148,36 @@ const NewRenderer = Reconciler({
   },
 
   commitMount(instance, updatePayload, type, oldProps, newProps) {
-    console.log(instance, updatePayload, type, oldProps, newProps);
-    throw 'commitMount';
+    // noop
   },
 
   commitTextUpdate(textInstance, oldText, newText) {
-    console.log(textInstance, oldText, newText);
-    throw 'commitTextUpdate';
+    // noop
   },
 
   supportsMutation: true,
   supportsPersistence: false,
 });
 
-export default NewRenderer;
+const appendChild = (container, child) => {
+  if (container.appendChild) {
+    container.appendChild(child);
+    child.parent = container;
+  } else {
+    throw new Error(`Can't append child to ${container.constructor.name}`);
+  }
+};
+
+const removeChild = (container, child) => {
+  if (container.removeChild) {
+    container.removeChild(child);
+  } else {
+    throw new Error(`Can't remove child from ${container.constructor.name}`);
+  }
+};
+
+const getLayoutProps = props => ({
+  layoutStretchy: props.layoutStretchy,
+});
+
+export default DesktopRenderer;
