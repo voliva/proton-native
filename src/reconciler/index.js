@@ -1,4 +1,4 @@
-import * as Components from '../components';
+import { createElement } from '../utils/createElement';
 const Reconciler = require('react-reconciler');
 
 const DesktopRenderer = Reconciler({
@@ -7,10 +7,7 @@ const DesktopRenderer = Reconciler({
   },
 
   createInstance(type, props) {
-    if (typeof Components[type] === 'undefined') {
-      throw new Error(`Component ${type} doesn't exist`);
-    }
-    const instance = Components[type](props);
+    const instance = createElement(type, props);
     instance.layoutProps = getLayoutProps(props);
     return instance;
   },

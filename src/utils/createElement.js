@@ -39,11 +39,11 @@ function createElement(type, props) {
     ROOT: () => new Root(),
     TEXT: () => new Text(ROOT_NODE, props),
     APP: () => new App(ROOT_NODE, props),
-    WINDOW: () => new Window(ROOT_NODE, props),
+    WINDOW: () => Window(props),
     BUTTON: () => new Button(ROOT_NODE, props),
-    VERTICALBOX: () => new VerticalBox(ROOT_NODE, props),
+    VERTICALBOX: () => VerticalBox(props),
     HORIZONTALBOX: () => new HorizontalBox(ROOT_NODE, props),
-    ENTRY: () => new Entry(ROOT_NODE, props),
+    ENTRY: () => Entry(props),
     PASSWORDENTRY: () => new PasswordEntry(ROOT_NODE, props),
     MULTILINEENTRY: () => new MultilineEntry(ROOT_NODE, props),
     COLORBUTTON: () => new ColorButton(ROOT_NODE, props),
@@ -65,16 +65,18 @@ function createElement(type, props) {
     MENUBAR: () => new MenuBar(ROOT_NODE, props),
     MENUBARITEM: () => new MenuBar.Item(ROOT_NODE, props),
     FONTBUTTON: () => new FontButton(ROOT_NODE, props),
-    AREA: () => new Area(ROOT_NODE, props),
-    AREARECTANGLE: () => new Area.Rectangle(ROOT_NODE, props),
+    AREA: () => Area(props),
+    AREARECTANGLE: () => Area.Rectangle(props),
     AREALINE: () => new Area.Line(ROOT_NODE, props),
     AREAARC: () => new Area.Arc(ROOT_NODE, props),
-    AREABEZIER: () => new Area.Bezier(ROOT_NODE, props),
+    AREABEZIER: () => Area.Bezier(props),
     AREAPATH: () => new Area.Path(ROOT_NODE, props),
-    AREAGROUP: () => new Area.Group(ROOT_NODE, props),
+    AREAGROUP: () => Area.Group(props),
     AREACIRCLE: () => new Area.Circle(ROOT_NODE, props),
     AREATEXT: () => new Area.Text(ROOT_NODE, props),
-    default: undefined,
+    default: () => {
+      throw new Error(`Component ${type} doesn't exist`);
+    },
   };
 
   return COMPONENTS[type]() || COMPONENTS.default;

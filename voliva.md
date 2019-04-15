@@ -29,11 +29,9 @@ So all what `App` does is implement all these methods, by accepting only `Window
 
 ## Area
 
-The way I understand root components is just the interface between React and libui-node. **I might be wrong here** because I know there's a very important caveat on this, but it helped me putting a boundary on what is a root component and what it's not.
+The way I understand root components is just the interface between React and libui-node. The idea I had initially was to make area sub-elements as pseudo-react elements: This is, elements that where React renders nothing, but it's used by `react-components/Area` to know what it needs to draw on. The problem this had is that then you can't create a sub-component for your Area (for instance, to customize a Rectangle), which breaks the principle of composability.
 
-So moving all of the area sub-components into `react-components/Area` helped a lot when moving things around.
-
-The important caveat is that `react-components/Area` needs the whole child tree when it renders, meaning that it doesn't support custom components that "render" additional Area subcomponents. I think this goes against the principles of React (it breaks composition) and probably would be good idea if I revert it back.
+So what I did is to make a libui.Area wrapper which works in the way I expect: I can add/remove stuff to a group and it gets repainted, just like if it were DOM - I called this wrapper `ComposableArea`. This way, I can create renderer definitions for each element and react will add/remove them.
 
 Another thing I changed, which I think it makes sense, has to do with relative sizing and `transform`. I personally rather the CSS way: everything in `transform` is relative to the own element, and others are relative to the parent.
 

@@ -13,11 +13,11 @@ import { App, Dialog } from './components';
 
 // Aliases for createElement method
 const Text = 'TEXT';
-const Window = 'Window';
+const Window = 'WINDOW';
 const Button = 'BUTTON';
-const VerticalBox = 'VerticalBox';
+const VerticalBox = 'VERTICALBOX';
 const HorizontalBox = 'HORIZONTALBOX';
-const Entry = 'Entry';
+const Entry = 'ENTRY';
 const PasswordEntry = 'PASSWORDENTRY';
 const MultilineEntry = 'MULTILINEENTRY';
 const ColorButton = 'COLORBUTTON';
@@ -39,7 +39,15 @@ const ProgressBar = 'PROGRESSBAR';
 const MenuBar = 'MENUBAR';
 const MenuBarItem = 'MENUBARITEM';
 const FontButton = 'FONTBUTTON';
-const AreaInternal = 'Area';
+const AreaInternal = 'AREA';
+Area.Rectangle = 'AREARECTANGLE';
+Area.Line = 'AREALINE';
+Area.Arc = 'AREAARC';
+Area.Bezier = 'AREABEZIER';
+Area.Path = 'AREAPATH';
+Area.Group = 'AREAGROUP';
+Area.Circle = 'AREACIRCLE';
+Area.Text = 'AREATEXT';
 
 export {
   render,

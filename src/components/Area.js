@@ -7,31 +7,22 @@ import PropTypes from 'prop-types';
 import Color from 'color';
 import parseSVG from 'svg-path-parser';
 import { StyledText } from '..';
-import propsUpdater from './propsUpdater';
+import { ComposableArea, AreaGroup, AreaRectangle, AreaBezier } from './ComposableArea';
 
-const Area = (props) => {
-  const handlers = {
-    draw: props.draw,
-    onMouseEvent: props.onMouseEvent,
-    onMouseCrossed: props.onMouseCrossed,
-    onDragBroken: props.onDragBroken,
-    onKeyEvent: props.onKeyEvent
-  };
+const AreaContainer = group => {
+  const appendChild = child => group.addChild(child.element);
+  const insertChild = (child, beforeChild) => group.addChild(child.element);
+  const removeChild = child => group.removeChild(child);
 
-  const element = new libui.UiArea(
-    (...args) => handlers.draw(...args),
-    (...args) => handlers.onMouseEvent(...args),
-    (...args) => handlers.onMouseCrossed(...args),
-    (...args) => handlers.onDragBroken(...args),
-    (...args) => handlers.onKeyEvent(...args),
-  );
+  return {
+    appendChild,
+    insertChild,
+    removeChild,
+  }
+}
 
-  const updateProps = propsUpdater(
-    [handlers, ...Object.keys(handlers)],
-    {
-      'draw': () => element.queueRedrawAll()
-    }
-  );
+const AreaElement = element => {
+  const updateProps = changes => element.updateProps(changes);
 
   return {
     element,
@@ -39,7 +30,18 @@ const Area = (props) => {
   }
 }
 
-export default Area;
+const Area = (props) => {
+  const composableArea = new ComposableArea(props);
+
+  const elementProps = AreaElement(composableArea);
+  const containerProps = AreaContainer(composableArea);
+
+  return {
+    ...elementProps,
+    ...containerProps,
+    element: composableArea.element
+  };
+}
 
 const onMouse = component => (area, evt) => {
   const down = evt.getDown();
@@ -552,70 +554,35 @@ const AreaComponentDefaultProps = {
   strokeLinejoin: 'miter',
 };
 
-AreaOld.Group = class AreaGroup extends AreaComponent {
-  constructor(root, props) {
-    super(root, props);
-    this.children = [];
-  }
+Area.Group = (props) => {
+  const group = new AreaGroup(props);
 
-  appendChild(child) {
-    this.children.push(child);
-  }
+  const elementProps = AreaElement(group);
+  const containerProps = AreaContainer(group);
 
-  removeChild(child) {
-    if (child.children) {
-      // we recursively remove all children
-      child.children.forEach(function(w) {
-        child.removeChild(w);
-      });
-    }
-    const index = this.children.indexOf(child);
-    this.children.splice(index, 1);
-  }
+  return {
+    ...elementProps,
+    ...containerProps
+  };
+}
 
-  insertChild(child, beforeChild) {
-    const beforeIndex = this.children.indexOf(beforeChild);
-    this.children.splice(beforeIndex, 0, child);
-  }
-
-  drawPath(area, p, props) {
-    for (let i = 0; i < this.children.length; i += 1) {
-      if (typeof this.children[i] === 'object') {
-        this.children[i].draw(this, area, p, props);
-      }
-    }
-  }
-};
-
-AreaOld.Group.propTypes = {
+Area.Group.propTypes = {
   ...AreaComponentPropTypes,
   width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };
 
-AreaOld.Rectangle = class Rectangle extends AreaComponent {
-  getWidth(p) {
-    return this.parseParent(this.props.width, p);
-  }
+Area.Rectangle = (props) => {
+  const rect = new AreaRectangle(props);
 
-  getHeight(p) {
-    return this.parseParent(this.props.height, p, true);
-  }
+  const elementProps = AreaElement(rect);
 
-  drawPath(area, p, props) {
-    const path = new libui.UiDrawPath(libui.fillMode.winding);
-    path.addRectangle(
-      this.parseParent(this.props.x, p),
-      this.parseParent(this.props.y, p, true),
-      this.parseParent(this.props.width, p),
-      this.parseParent(this.props.height, p, true)
-    );
-    path.end();
-    return path;
-  }
-};
+  return {
+    ...elementProps,
+  };
+}
 
-AreaOld.Rectangle.propTypes = {
+Area.Rectangle.propTypes = {
   ...AreaComponentPropTypes,
   x: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   y: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
@@ -623,7 +590,7 @@ AreaOld.Rectangle.propTypes = {
   height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
 };
 
-Area.Line = class Line extends AreaComponent {
+AreaOld.Line = class Line extends AreaComponent {
   getWidth(p) {
     return Math.abs(
       this.parseParent(this.props.x2, p) - this.parseParent(this.props.x1, p)
@@ -653,7 +620,7 @@ Area.Line = class Line extends AreaComponent {
   }
 };
 
-Area.Line.propTypes = {
+AreaOld.Line.propTypes = {
   ...AreaComponentPropTypes,
   x1: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   y1: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
@@ -661,7 +628,7 @@ Area.Line.propTypes = {
   y2: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
 };
 
-Area.Arc = class Arc extends AreaComponent {
+AreaOld.Arc = class Arc extends AreaComponent {
   getWidth(p) {
     return 2 * this.parseParent(this.props.r, p);
   }
@@ -685,7 +652,7 @@ Area.Arc = class Arc extends AreaComponent {
   }
 };
 
-Area.Arc.propTypes = {
+AreaOld.Arc.propTypes = {
   ...AreaComponentPropTypes,
   x: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   y: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
@@ -694,12 +661,12 @@ Area.Arc.propTypes = {
   sweep: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
 };
 
-Area.Arc.defaultProps = {
+AreaOld.Arc.defaultProps = {
   ...AreaComponentDefaultProps,
   start: 0,
 };
 
-Area.Circle = class Circle extends AreaComponent {
+AreaOld.Circle = class Circle extends AreaComponent {
   getWidth(p) {
     return 2 * this.parseParent(this.props.r, p);
   }
@@ -723,37 +690,26 @@ Area.Circle = class Circle extends AreaComponent {
   }
 };
 
-Area.Circle.propTypes = {
+AreaOld.Circle.propTypes = {
   ...AreaComponentPropTypes,
   x: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   y: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   r: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
 };
 
-Area.Circle.defaultProps = {
+AreaOld.Circle.defaultProps = {
   ...AreaComponentDefaultProps,
 };
 
-Area.Bezier = class Bezier extends AreaComponent {
-  drawPath(area, p, props) {
-    const path = new libui.UiDrawPath(libui.fillMode.winding);
-    path.newFigure(
-      this.parseParent(this.props.x1, p),
-      this.parseParent(this.props.y1, p, true)
-    );
-    path.bezierTo(
-      this.parseParent(this.props.cx1, p),
-      this.parseParent(this.props.cy1, p, true),
-      this.parseParent(this.props.cx2, p),
-      this.parseParent(this.props.cy2, p, true),
-      this.parseParent(this.props.x2, p),
-      this.parseParent(this.props.y2, p, true)
-    );
-    path.end();
+Area.Bezier = (props) => {
+  const rect = new AreaBezier(props);
 
-    return path;
-  }
-};
+  const elementProps = AreaElement(rect);
+
+  return {
+    ...elementProps,
+  };
+}
 
 Area.Bezier.propTypes = {
   ...AreaComponentPropTypes,
@@ -767,7 +723,7 @@ Area.Bezier.propTypes = {
   cy2: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
 };
 
-Area.Path = class Path extends AreaComponent {
+AreaOld.Path = class Path extends AreaComponent {
   drawPath(area, p, props) {
     const path = new libui.UiDrawPath(
       this.props.fillRule === 'evenodd'
@@ -819,17 +775,17 @@ Area.Path = class Path extends AreaComponent {
   }
 };
 
-Area.Path.propTypes = {
+AreaOld.Path.propTypes = {
   ...AreaComponentPropTypes,
   d: PropTypes.string.isRequired,
   fillRule: PropTypes.oneOf(['nonzero', 'evenodd']),
 };
 
-Area.Path.defaultProps = {
+AreaOld.Path.defaultProps = {
   fillRule: 'nonzero',
 };
 
-Area.Text = class AreaText extends AreaComponent {
+AreaOld.Text = class AreaText extends AreaComponent {
   constructor(root, props) {
     super(root, props);
     this.children = [];
@@ -1035,7 +991,7 @@ function areaTextProp(props, propName, componentName) {
   }
 }
 
-Area.Text.propTypes = {
+AreaOld.Text.propTypes = {
   children: PropTypes.oneOfType([
     areaTextProp,
     PropTypes.arrayOf(areaTextProp),
@@ -1044,7 +1000,9 @@ Area.Text.propTypes = {
   y: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
 };
 
-Area.Text.defaultProps = {
+AreaOld.Text.defaultProps = {
   x: 0,
   y: 0,
 };
+
+export default Area;
