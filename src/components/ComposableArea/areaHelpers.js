@@ -57,13 +57,12 @@ export const createParsers = ({ width, height }) => ({
   parseY: parseSize(height)
 });
 
-export const getTransformationMatrix = (transformProp, { width, height }) => {
+export const getTransformationMatrix = (transformProp, ownSize) => {
   const mat = new libui.UiDrawMatrix();
   const zero = new libui.PointDouble(0, 0);
   mat.setIdentity();
 
-  const parseX = parseSize(width);
-  const parseY = parseSize(height);
+  const {parseX, parseY} = createParsers(ownSize);
 
   const getOrigin = (relativeOriginX, relativeOriginY) => {
     const current = mat.transformPoint(zero);

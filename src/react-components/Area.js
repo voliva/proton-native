@@ -3,14 +3,6 @@ import PropTypes from 'prop-types';
 import { AreaInternal } from '../';
 import libui from 'libui-node';
 import Color from 'color';
-import {
-  getTransformationMatrix,
-  strokePath,
-  fillPath,
-  toLibuiColor,
-  parseSize,
-  createParsers
-} from './areaHelpers';
 
 const HasAreaParentContext = React.createContext(false);
 
@@ -35,38 +27,7 @@ const AreaComponentDefaultProps = {
   strokeLinejoin: 'miter',
 };
 
-const drawChild = (parentProps, parentParsers, area, p) => child => {
-  if (typeof child !== 'object' || !child.type) {
-    return;
-  }
-
-  const mergedProps = {
-    ...parentProps,
-    ...child.props,
-  };
-
-  const ownSize = child.type.getSize(mergedProps, parentParsers, area, p);
-
-  if (child.props.transform) {
-    p.getContext().save();
-    const mat = getTransformationMatrix(
-      child.props.transform,
-      ownSize
-    );
-    p.getContext().transform(mat);
-  }
-
-  if (child.type.draw) {
-    child.type.draw(mergedProps, parentParsers, area, p);
-  }
-
-  Children.forEach(child.props.children, drawChild(mergedProps, createParsers(ownSize), area, p));
-
-  if (child.props.transform) {
-    p.getContext().restore();
-  }
-};
-
+/*
 const captureChildMouseEvent = (parentProps, evt, parentParsers, area, contextMat) => child => {
   if (typeof child !== 'object' || !child.type) {
     return false;
@@ -139,112 +100,15 @@ const captureChildMouseEvent = (parentProps, evt, parentParsers, area, contextMa
 
   return child.type.captureMouseEvent(mergedProps, targetEvt, area);
 }
+*/
 
-const identity = new libui.UiDrawMatrix();
-identity.setIdentity();
-const Area = props => {
-  const { children, transform, stroke, fill, strokeWidth } = props;
+const Area = props => React.createElement(
+  HasAreaParentContext.Provider,
+  { value: true },
+  React.createElement(AreaInternal, props)
+);
 
-  const pseudoChild = useMemo(() =>
-    React.createElement(
-      Area.Group,
-      props,
-      children
-    ),
-    [props]
-  );
-
-  const draw = useCallback(
-    (area, p) => {
-      try {
-        drawChild({}, createParsers({
-          width: p.getAreaWidth(),
-          height: p.getAreaHeight()
-        }), area, p)(pseudoChild);
-      }catch (ex) {
-        console.error(ex);
-      }
-    },
-    [pseudoChild]
-  );
-
-  const { onMouseUp, onMouseDown, onMouseMove, } = props;
-  const onMouseEvent = useCallback((area, evt, ...args) => {
-    const event = {
-      x: evt.getX(),
-      y: evt.getY(),
-      width: evt.getAreaWidth(),
-      height: evt.getAreaHeight()
-    };
-
-    const down = evt.getDown();
-    const up = evt.getUp();
-    if (up) {
-      event.type = 'onMouseUp';
-      event.button = up;
-    } else if (down) {
-      event.type = 'onMouseDown';
-      event.button = down;
-    } else {
-      const buttons = [];
-      const held = evt.getHeld1To64();
-      if (held > 0) {
-        for (let i = 0; i <= 6; i++) {
-          if (held & Math.pow(2, i)) buttons.push(i + 1);
-          if (!(held >> (i + 1))) break;
-        }
-      }
-      event.type = 'onMouseMove',
-      event.buttons = buttons;
-    }
-
-    captureChildMouseEvent({}, event, createParsers(event), area, identity)(pseudoChild);
-  }, [onMouseUp, onMouseDown, onMouseMove]);
-  const onMouseCrossed = useCallback(() => {}, []);
-  const onDragBroken = useCallback(() => {}, []);
-  const onKeyEvent = useCallback(() => {}, []);
-
-  return React.createElement(
-    HasAreaParentContext.Provider,
-    { value: true },
-    React.createElement(AreaInternal, {
-      draw,
-      onMouseEvent,
-      onMouseCrossed,
-      onDragBroken,
-      onKeyEvent,
-      layoutStretchy: props.layoutStretchy,
-    })
-  );
-};
-
-Area.Rectangle = () => null;
-Area.Rectangle.defaultProps = {
-  x: 0,
-  y: 0,
-};
-Area.Rectangle.draw = (props, { parseX, parseY }, area, p) => {
-  const path = new libui.UiDrawPath(libui.fillMode.winding);
-
-  const {width, height} = Area.Rectangle.getSize(props, { parseX, parseY }, area, p);
-
-  path.addRectangle(
-    parseX(props.x),
-    parseY(props.y),
-    width,
-    height
-  );
-  path.end();
-
-  strokePath(props, path, p);
-  fillPath(props, path, p);
-
-  return path;
-};
-Area.Rectangle.getSize = (props, { parseX, parseY }, area, p) => ({
-  width: parseX(props.width),
-  height: parseY(props.height),
-});
+/*
 Area.Rectangle.captureMouseEvent = (props, evt, area) => {
   if(!props[evt.type]) return false;
 
@@ -255,44 +119,21 @@ Area.Rectangle.captureMouseEvent = (props, evt, area) => {
   }
 };
 
-Area.Group = () => null;
-Area.Group.getSize = (props, { parseX, parseY }, area, p) => ({
-  width: parseX(props.width || '100%'),
-  height: parseY(props.height || '100%')
-});
 Area.Group.captureMouseEvent = (props, evt, area) => {
   if(!props[evt.type]) return false;
 
   return props[evt.type](evt);
 };
+*/
 
-Area.Bezier = () => null;
-Area.Bezier.draw = (props, { parseX, parseY }, area, p) => {
-  const path = new libui.UiDrawPath(libui.fillMode.winding);
-
-  path.newFigure(
-    parseX(props.x1),
-    parseY(props.y1),
+function toLibuiColor(color, alpha = 1) {
+  return new libui.Color(
+    color.red() / 255,
+    color.green() / 255,
+    color.blue() / 255,
+    color.alpha() * alpha
   );
-  path.bezierTo(
-    parseX(props.cx1),
-    parseY(props.cy1),
-    parseX(props.cx2),
-    parseY(props.cy2),
-    parseX(props.x2),
-    parseY(props.y2),
-  );
-  path.end();
-
-  strokePath(props, path, p);
-  fillPath(props, path, p);
-
-  return path;
-};
-Area.Bezier.getSize = (props, { parseX, parseY }, area, p) => ({
-  width: parseX(props.width || '100%'),
-  height: parseY(props.height || '100%')
-});
+}
 
 Area.Gradient = class AreaGradient {
   static create(options) {
