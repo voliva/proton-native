@@ -1,6 +1,9 @@
 import libui from 'libui-node';
 import { AreaGroup } from './AreaGroup';
 
+const identity = new libui.UiDrawMatrix();
+identity.setIdentity();
+
 export class ComposableArea {
   constructor(props) {
     this._group = new AreaGroup(props);
@@ -33,17 +36,45 @@ export class ComposableArea {
   handleChange = () => this._area.queueRedrawAll();
 
   handleDraw = (area, p) => {
-    try {
-      this._group.draw({}, {
-        width: p.getAreaWidth(),
-        height: p.getAreaHeight()
-      }, area, p);
-    }catch(ex) {
-      console.log(ex);
-    }
+    this._group.draw({}, {
+      width: p.getAreaWidth(),
+      height: p.getAreaHeight()
+    }, area, p);
   }
 
   handleMouseEvent = (area, evt) => {
-    return true;
+    const areaSize = {
+      width: evt.getAreaWidth(),
+      height: evt.getAreaHeight()
+    };
+
+    const event = {
+      ...areaSize,
+      x: evt.getX(),
+      y: evt.getY(),
+    };
+
+    const down = evt.getDown();
+    const up = evt.getUp();
+    if (up) {
+      event.type = 'onMouseUp';
+      event.button = up;
+    } else if (down) {
+      event.type = 'onMouseDown';
+      event.button = down;
+    } else {
+      const buttons = [];
+      const held = evt.getHeld1To64();
+      if (held > 0) {
+        for (let i = 0; i <= 6; i++) {
+          if (held & Math.pow(2, i)) buttons.push(i + 1);
+          if (!(held >> (i + 1))) break;
+        }
+      }
+      event.type = 'onMouseMove',
+      event.buttons = buttons;
+    }
+
+    this._group.captureMouseEvent({}, event, areaSize, area, identity);
   }
 }
