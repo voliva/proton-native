@@ -33,24 +33,6 @@ const Area = props => React.createElement(
   React.createElement(AreaInternal, props)
 );
 
-/*
-Area.Rectangle.captureMouseEvent = (props, evt, area) => {
-  if(!props[evt.type]) return false;
-
-  if(evt.targetX >= props.x && evt.targetX <= props.x + props.width &&
-    evt.targetY >= props.y && evt.targetY <= props.y + props.height
-  ) {
-    return props[evt.type](evt);
-  }
-};
-
-Area.Group.captureMouseEvent = (props, evt, area) => {
-  if(!props[evt.type]) return false;
-
-  return props[evt.type](evt);
-};
-*/
-
 function toLibuiColor(color, alpha = 1) {
   return new libui.Color(
     color.red() / 255,
