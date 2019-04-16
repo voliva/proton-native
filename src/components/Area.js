@@ -9,9 +9,9 @@ import parseSVG from 'svg-path-parser';
 import { StyledText } from '..';
 import { ComposableArea, AreaGroup, AreaRectangle, AreaBezier } from './ComposableArea';
 
-const AreaContainer = group => {
-  const appendChild = child => group.addChild(child.element);
-  const insertChild = (child, beforeChild) => group.addChild(child.element);
+const getAreaContainerProps = group => {
+  const appendChild = child => group.addChild(child.areaElement);
+  const insertChild = (child, beforeChild) => group.addChild(child.areaElement);
   const removeChild = child => group.removeChild(child);
 
   return {
@@ -21,11 +21,11 @@ const AreaContainer = group => {
   }
 }
 
-const AreaElement = element => {
-  const updateProps = changes => element.updateProps(changes);
+const getAreaElementProps = areaElement => {
+  const updateProps = changes => areaElement.updateProps(changes);
 
   return {
-    element,
+    areaElement,
     updateProps
   }
 }
@@ -33,8 +33,8 @@ const AreaElement = element => {
 const Area = (props) => {
   const composableArea = new ComposableArea(props);
 
-  const elementProps = AreaElement(composableArea);
-  const containerProps = AreaContainer(composableArea);
+  const elementProps = getAreaElementProps(composableArea);
+  const containerProps = getAreaContainerProps(composableArea);
 
   return {
     ...elementProps,
@@ -557,8 +557,8 @@ const AreaComponentDefaultProps = {
 Area.Group = (props) => {
   const group = new AreaGroup(props);
 
-  const elementProps = AreaElement(group);
-  const containerProps = AreaContainer(group);
+  const elementProps = getAreaElementProps(group);
+  const containerProps = getAreaContainerProps(group);
 
   return {
     ...elementProps,
@@ -575,7 +575,7 @@ Area.Group.propTypes = {
 Area.Rectangle = (props) => {
   const rect = new AreaRectangle(props);
 
-  const elementProps = AreaElement(rect);
+  const elementProps = getAreaElementProps(rect);
 
   return {
     ...elementProps,
@@ -704,7 +704,7 @@ AreaOld.Circle.defaultProps = {
 Area.Bezier = (props) => {
   const rect = new AreaBezier(props);
 
-  const elementProps = AreaElement(rect);
+  const elementProps = getAreaElementProps(rect);
 
   return {
     ...elementProps,

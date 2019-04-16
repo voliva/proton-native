@@ -4,7 +4,7 @@ import libui from 'libui-node';
 const createAreaDrawable = (
   drawFn,
   captureMouseFn = () => false
-) => class AreaRectangle {
+) => class {
   constructor(props = {}) {
     this.props = props;
 
